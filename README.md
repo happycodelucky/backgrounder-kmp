@@ -25,7 +25,7 @@ Backgrounder wraps each platform's background-scheduling primitive behind one AP
 - **macOS 15+**: Foundation's `NSBackgroundActivityScheduler` (one-shot + native periodic).
 - **JVM 21+** (desktop / server): library-owned coroutines (one-shot + periodic; in-process, nothing survives the process).
 
-Full documentation lives at [happycodelucky.github.io/backgrounder](https://happycodelucky.github.io/backgrounder/).
+Full documentation [here](https://happycodelucky.github.io/backgrounder-kmp/).
 
 ---
 
