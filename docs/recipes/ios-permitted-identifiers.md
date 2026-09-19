@@ -2,28 +2,30 @@
 
 Every task id you schedule as a `WorkRequest.OneTime` on iOS, plus the tick identifier, must appear in the app's `BGTaskSchedulerPermittedIdentifiers` `Info.plist` array. When the two drift apart iOS silently never fires the task. The Backgrounder Gradle plugin removes the drift by generating the array from your code.
 
-## 1. Annotate each id
+## 1. Annotate each id that belongs in the plist
 
-Declare every id once as a `const val String` and mark it `@BackgroundTaskId`. The tick identifier is just another id:
+This is an iOS-only concern and it says nothing about how the work runs. Two kinds of id belong in the array: the tick identifier, and every id you may schedule as a `WorkRequest.OneTime`. Periodic ids and `runNow` ids never reach `BGTaskScheduler`, so they don't need it; annotating them anyway is harmless, since a surplus entry costs nothing, while a missing entry means iOS silently never fires the task.
+
+Declare each such id once as a `const val String` and mark it `@BGTaskSchedulerPermittedIdentifier`:
 
 ```kotlin
-import com.happycodelucky.backgrounder.BackgroundTaskId
+import com.happycodelucky.backgrounder.BGTaskSchedulerPermittedIdentifier
 
 object AppTasks {
-    @BackgroundTaskId const val TICK = "dev.example.app.background-tick"
+    @BGTaskSchedulerPermittedIdentifier const val TICK = "dev.example.app.background-tick"
 }
 
 class SyncWorker(private val repo: Repository) : BackgroundWorker {
     override suspend fun execute(context: WorkerContext): WorkResult = ...
 
     companion object {
-        @BackgroundTaskId const val ID = "dev.example.app.sync"
+        @BGTaskSchedulerPermittedIdentifier const val ID = "dev.example.app.sync"
     }
 }
 
 class UploadWorker(...) : BackgroundWorker {
     companion object {
-        @BackgroundTaskId const val ID = "dev.example.app.upload"
+        @BGTaskSchedulerPermittedIdentifier const val ID = "dev.example.app.upload"
     }
 }
 ```
@@ -56,7 +58,7 @@ Two tasks run:
 
 | Task | What it does |
 | --- | --- |
-| `collectBackgroundTaskIds` | Compiles the module's JVM slice, scans the class files for `@BackgroundTaskId` constants, validates them, and writes `build/backgrounder/task-ids.txt`. Cacheable and incremental. |
+| `collectBackgroundTaskIds` | Compiles the module's JVM slice, scans the class files for `@BGTaskSchedulerPermittedIdentifier` constants, validates them, and writes `build/backgrounder/task-ids.txt`. Cacheable and incremental. |
 | `updateBackgrounderInfoPlist` | Rewrites the `BGTaskSchedulerPermittedIdentifiers` array in the configured plist from that manifest. Replaces only that one key and array; every other byte of the file, including its indentation style, is preserved. Inserts the key if it's missing. |
 
 Wire it into your iOS build however suits you. A common choice is an Xcode run-script phase before **Compile Sources** that calls the Gradle task, so the plist is current on every build. Another is a pre-commit hook. The rewrite is idempotent, so running it more often than needed costs nothing.
@@ -74,7 +76,7 @@ backgrounder {
 
 ## What can go wrong
 
-- **`@BackgroundTaskId requires a const val String`.** The annotation is on a plain `val`. Only `const` initializers are folded into the class file where the scanner can read them.
+- **`@BGTaskSchedulerPermittedIdentifier requires a const val String`.** The annotation is on a plain `val`. Only `const` initializers are folded into the class file where the scanner can read them.
 - **`id '…' is declared more than once`.** Two constants carry the same string. Task ids are keys; the build fails so you pick one.
 - **`is blank` / `has leading or trailing whitespace` / `contains control characters`.** The same rules `Backgrounder` enforces at runtime, caught earlier. See [Task ids](../concepts/task-ids.md).
 - **`does not follow the reverse-DNS convention`.** A warning, not a failure. Set `warnOnNonReverseDns = false` if your ids intentionally use another shape.

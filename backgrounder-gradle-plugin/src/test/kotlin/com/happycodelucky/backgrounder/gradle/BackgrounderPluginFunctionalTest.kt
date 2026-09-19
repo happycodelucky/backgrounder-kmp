@@ -51,15 +51,15 @@ class BackgrounderPluginFunctionalTest {
             """.trimIndent(),
         )
         val src = dir.resolve("src/main/kotlin").apply { mkdirs() }
-        src.resolve("BackgroundTaskId.kt").writeText(
+        src.resolve("BGTaskSchedulerPermittedIdentifier.kt").writeText(
             """
             package com.happycodelucky.backgrounder
             @Target(AnnotationTarget.FIELD)
             @Retention(AnnotationRetention.BINARY)
-            annotation class BackgroundTaskId
+            annotation class BGTaskSchedulerPermittedIdentifier
             """.trimIndent(),
         )
-        src.resolve("Ids.kt").writeText("import com.happycodelucky.backgrounder.BackgroundTaskId\n\n$constants")
+        src.resolve("Ids.kt").writeText("import com.happycodelucky.backgrounder.BGTaskSchedulerPermittedIdentifier\n\n$constants")
         if (plist != null) {
             dir.resolve("ios").mkdirs()
             dir.resolve("ios/Info.plist").writeText(plist)
@@ -83,10 +83,10 @@ class BackgrounderPluginFunctionalTest {
             project(
                 """
                 object AppTasks {
-                    @BackgroundTaskId const val TICK = "dev.example.app.background-tick"
-                    @BackgroundTaskId const val SYNC = "dev.example.app.sync"
+                    @BGTaskSchedulerPermittedIdentifier const val TICK = "dev.example.app.background-tick"
+                    @BGTaskSchedulerPermittedIdentifier const val SYNC = "dev.example.app.sync"
                 }
-                class Worker { companion object { @BackgroundTaskId const val UPLOAD = "dev.example.app.upload" } }
+                class Worker { companion object { @BGTaskSchedulerPermittedIdentifier const val UPLOAD = "dev.example.app.upload" } }
                 """.trimIndent(),
             )
         val result = runner(dir, "updateBackgrounderInfoPlist").build()
@@ -114,8 +114,8 @@ class BackgrounderPluginFunctionalTest {
         val dir =
             project(
                 """
-                object A { @BackgroundTaskId const val X = "dev.example.dup" }
-                object B { @BackgroundTaskId const val Y = "dev.example.dup" }
+                object A { @BGTaskSchedulerPermittedIdentifier const val X = "dev.example.dup" }
+                object B { @BGTaskSchedulerPermittedIdentifier const val Y = "dev.example.dup" }
                 """.trimIndent(),
             )
         val result = runner(dir, "collectBackgroundTaskIds").buildAndFail()
@@ -129,8 +129,8 @@ class BackgrounderPluginFunctionalTest {
             project(
                 """
                 object A {
-                    @BackgroundTaskId val NOT_CONST = "dev.example.a"
-                    @BackgroundTaskId const val BLANK = " "
+                    @BGTaskSchedulerPermittedIdentifier val NOT_CONST = "dev.example.a"
+                    @BGTaskSchedulerPermittedIdentifier const val BLANK = " "
                 }
                 """.trimIndent(),
             )
@@ -141,14 +141,14 @@ class BackgrounderPluginFunctionalTest {
 
     @Test
     fun warnsOnNonReverseDnsButSucceeds() {
-        val dir = project("""object A { @BackgroundTaskId const val X = "sync" }""")
+        val dir = project("""object A { @BGTaskSchedulerPermittedIdentifier const val X = "sync" }""")
         val result = runner(dir, "collectBackgroundTaskIds").build()
         assertTrue(result.output.contains("does not follow the reverse-DNS convention"), result.output)
     }
 
     @Test
     fun plistTaskSkippedWhenNotConfigured() {
-        val dir = project("""object A { @BackgroundTaskId const val X = "dev.example.x" }""", plist = null)
+        val dir = project("""object A { @BGTaskSchedulerPermittedIdentifier const val X = "dev.example.x" }""", plist = null)
         val result = runner(dir, "updateBackgrounderInfoPlist").build()
         assertEquals(TaskOutcome.SKIPPED, result.task(":updateBackgrounderInfoPlist")?.outcome)
     }

@@ -208,7 +208,7 @@ Add the tick identifier (mandatory) plus one entry per `WorkRequest.OneTime` tas
 </array>
 ```
 
-Or don't maintain the array by hand: mark each id `@BackgroundTaskId const val` in the shared module, apply the `com.happycodelucky.backgrounder` Gradle plugin, and `./gradlew updateBackgrounderInfoPlist` rewrites the array from your code. See [docs/recipes/ios-permitted-identifiers.md](docs/recipes/ios-permitted-identifiers.md).
+Or don't maintain the array by hand: mark the tick and each one-shot id `@BGTaskSchedulerPermittedIdentifier const val` in the shared module, apply the `com.happycodelucky.backgrounder` Gradle plugin, and `./gradlew updateBackgrounderInfoPlist` rewrites the array from your code. See [docs/recipes/ios-permitted-identifiers.md](docs/recipes/ios-permitted-identifiers.md).
 
 A missing tick identifier is reported with a Kermit error during `backgrounder.start()` (close to the cause; not at first `schedule()`). Missing one-shot ids surface as warnings — the library can't tell at registration time which ids will be used as one-shots vs periodics.
 

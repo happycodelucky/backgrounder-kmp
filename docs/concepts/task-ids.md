@@ -7,7 +7,7 @@ class SyncWorker(private val repo: Repository) : BackgroundWorker {
     override suspend fun execute(context: WorkerContext): WorkResult = ...
 
     companion object {
-        @BackgroundTaskId const val ID = "dev.example.app.sync"
+        @BGTaskSchedulerPermittedIdentifier const val ID = "dev.example.app.sync"
     }
 }
 
@@ -15,7 +15,7 @@ backgrounder.register(SyncWorker.ID) { SyncWorker(repo = graph.repository) }
 backgrounder.schedule(WorkRequest.OneTime(taskId = SyncWorker.ID))
 ```
 
-Declare each id once as a `const val` next to the worker that owns it, and reference that constant everywhere else. `@BackgroundTaskId` lets the [Gradle plugin](../recipes/ios-permitted-identifiers.md) collect it into the iOS `Info.plist`. The id is a stable key: it is persisted with scheduled work and must survive app upgrades unchanged.
+Declare each id once as a `const val` next to the worker that owns it, and reference that constant everywhere else. `@BGTaskSchedulerPermittedIdentifier` marks the ids that belong in the iOS `BGTaskSchedulerPermittedIdentifiers` array (the tick and any one-shot id) so the [Gradle plugin](../recipes/ios-permitted-identifiers.md) can write them into `Info.plist`; it's an iOS-only concern, not required for background work in general. The id is a stable key: it is persisted with scheduled work and must survive app upgrades unchanged.
 
 ## The convention: reverse-DNS
 

@@ -62,7 +62,7 @@ already use plugs in cleanly.
 
 The `com.happycodelucky.backgrounder` Gradle plugin keeps the iOS
 `BGTaskSchedulerPermittedIdentifiers` array in sync with the
-`@BackgroundTaskId` constants in your shared module. Apply it to the module
+`@BGTaskSchedulerPermittedIdentifier` constants in your shared module. Apply it to the module
 that declares your workers:
 
 ```kotlin

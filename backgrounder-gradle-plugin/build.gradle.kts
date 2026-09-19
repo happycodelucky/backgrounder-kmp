@@ -2,7 +2,7 @@
  * Backgrounder — :backgrounder-gradle-plugin.
  *
  * Build-time companion to the library. Scans the shared module's compiled
- * classes for `@BackgroundTaskId const val` declarations, validates them, and
+ * classes for `@BGTaskSchedulerPermittedIdentifier const val` declarations, validates them, and
  * rewrites `BGTaskSchedulerPermittedIdentifiers` in the iOS app's Info.plist
  * so the plist and the code can never disagree.
  *
@@ -58,7 +58,7 @@ gradlePlugin {
             implementationClass = "com.happycodelucky.backgrounder.gradle.BackgrounderPlugin"
             displayName = "Backgrounder"
             description =
-                "Collects @BackgroundTaskId constants from the shared module and keeps the iOS " +
+                "Collects @BGTaskSchedulerPermittedIdentifier constants from the shared module and keeps the iOS " +
                 "BGTaskSchedulerPermittedIdentifiers Info.plist array in sync with them."
         }
     }
@@ -84,7 +84,7 @@ mavenPublishing {
     pom {
         name.set("Backgrounder Gradle Plugin")
         description.set(
-            "Gradle plugin for the Backgrounder KMP library. Collects @BackgroundTaskId constants and " +
+            "Gradle plugin for the Backgrounder KMP library. Collects @BGTaskSchedulerPermittedIdentifier constants and " +
                 "rewrites BGTaskSchedulerPermittedIdentifiers in the iOS Info.plist.",
         )
         url.set("https://github.com/happycodelucky/backgrounder")

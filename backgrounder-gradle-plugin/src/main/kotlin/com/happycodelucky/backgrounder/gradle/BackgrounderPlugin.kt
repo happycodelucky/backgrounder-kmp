@@ -7,7 +7,7 @@ import org.gradle.api.Project
  * Registers two tasks:
  *
  *  - `collectBackgroundTaskIds` — scans the compile task's class output for
- *    `@BackgroundTaskId const val` fields and writes the manifest.
+ *    `@BGTaskSchedulerPermittedIdentifier const val` fields and writes the manifest.
  *  - `updateBackgrounderInfoPlist` — rewrites the plist array from the
  *    manifest. Skipped when `backgrounder.iosInfoPlist` isn't set.
  *
@@ -26,7 +26,7 @@ public class BackgrounderPlugin : Plugin<Project> {
         val collect =
             project.tasks.register("collectBackgroundTaskIds", CollectBackgroundTaskIdsTask::class.java) { task ->
                 task.group = GROUP
-                task.description = "Collects @BackgroundTaskId constants from compiled classes into a manifest."
+                task.description = "Collects @BGTaskSchedulerPermittedIdentifier constants from compiled classes into a manifest."
                 task.dependsOn(compileTask)
                 task.classDirs.from(compileTask.flatMap { provider -> provider.map { it.outputs.files } })
                 task.manifest.set(ext.manifest)

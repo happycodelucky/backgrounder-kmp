@@ -51,7 +51,7 @@ You need **at least the tick identifier** plus one entry per `WorkRequest.OneTim
 </array>
 ```
 
-You don't have to maintain this array by hand. Mark each id `@BackgroundTaskId const val` in the shared module and let the Gradle plugin rewrite the array from your code — see [Generate the iOS permitted identifiers](../recipes/ios-permitted-identifiers.md).
+You don't have to maintain this array by hand. Mark the tick and each one-shot id `@BGTaskSchedulerPermittedIdentifier const val` in the shared module and let the Gradle plugin rewrite the array from your code — see [Generate the iOS permitted identifiers](../recipes/ios-permitted-identifiers.md).
 
 The library validates the tick identifier during `backgrounder.start()` (logs an error if missing — periodic dispatch is dead in the water without it) and warns about each registered factory id missing from the plist (you only need a per-id entry if you'll schedule that id as a `OneTime`; a periodic-only id doesn't need one).
 

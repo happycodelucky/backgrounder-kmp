@@ -7,7 +7,7 @@ import org.objectweb.asm.FieldVisitor
 import org.objectweb.asm.Opcodes
 import java.io.File
 
-/** One `@BackgroundTaskId` field found in a class file. */
+/** One `@BGTaskSchedulerPermittedIdentifier` field found in a class file. */
 internal data class ScannedTaskId(
     val id: String,
     val owner: String,
@@ -33,10 +33,10 @@ internal data class ScanResult(
 
 /**
  * Reads class files with ASM and returns every field carrying
- * `@BackgroundTaskId`.
+ * `@BGTaskSchedulerPermittedIdentifier`.
  *
  * Kotlin compiles `const val` into a static field with a `ConstantValue`
- * attribute; ASM hands that to `visitField` as `value`. A `@BackgroundTaskId`
+ * attribute; ASM hands that to `visitField` as `value`. A `@BGTaskSchedulerPermittedIdentifier`
  * on a field with a null `value` is a non-`const` property — reported
  * separately so the task can fail with a precise message.
  *
@@ -44,7 +44,7 @@ internal data class ScanResult(
  * `visitAnnotation` sees it with `visible = false`. We accept either.
  */
 internal object TaskIdScanner {
-    const val ANNOTATION_DESCRIPTOR: String = "Lcom/happycodelucky/backgrounder/BackgroundTaskId;"
+    const val ANNOTATION_DESCRIPTOR: String = "Lcom/happycodelucky/backgrounder/BGTaskSchedulerPermittedIdentifier;"
 
     fun scan(roots: Iterable<File>): ScanResult {
         val ids = mutableListOf<ScannedTaskId>()

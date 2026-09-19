@@ -1,13 +1,21 @@
 package com.happycodelucky.backgrounder
 
 /**
- * Marks a `const val String` as a Backgrounder task id so build tooling can
- * collect it.
+ * Marks a `const val String` as an identifier that must appear in the iOS
+ * app's `BGTaskSchedulerPermittedIdentifiers` `Info.plist` array.
+ *
+ * **iOS-only concern.** Android and macOS need nothing like it, and it says
+ * nothing about how the work runs. Two kinds of id belong in that array:
+ * the tick identifier passed to `Backgrounder.create(tickIdentifier:)`, and
+ * every id you may schedule as a [WorkRequest.OneTime]. Periodic ids and
+ * `runNow` ids never reach `BGTaskScheduler` and don't need it — annotating
+ * them anyway is harmless (a surplus plist entry costs nothing), whereas a
+ * missing entry means iOS silently never fires that task.
  *
  * ```kotlin
  * class SyncWorker(...) : BackgroundWorker {
  *     companion object {
- *         @BackgroundTaskId const val SYNC = "dev.example.app.sync"
+ *         @BGTaskSchedulerPermittedIdentifier const val SYNC = "dev.example.app.sync"
  *     }
  * }
  * ```
@@ -15,8 +23,7 @@ package com.happycodelucky.backgrounder
  * The Backgrounder Gradle plugin (`com.happycodelucky.backgrounder`) scans the
  * compiled JVM classes of the shared module for annotated constants, validates
  * them, and rewrites the `BGTaskSchedulerPermittedIdentifiers` array in the
- * iOS app's `Info.plist` from that list. Annotate the iOS tick identifier the
- * same way — it is just another id that must be in the plist.
+ * iOS app's `Info.plist` from that list. See docs/recipes/ios-permitted-identifiers.md.
  *
  * Constraints, all enforced by the plugin at build time:
  *
@@ -36,4 +43,4 @@ package com.happycodelucky.backgrounder
 @Target(AnnotationTarget.FIELD)
 @Retention(AnnotationRetention.BINARY)
 @MustBeDocumented
-public annotation class BackgroundTaskId
+public annotation class BGTaskSchedulerPermittedIdentifier

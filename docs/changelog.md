@@ -4,7 +4,7 @@
 
 ### Gradle plugin: generated `BGTaskSchedulerPermittedIdentifiers`
 
-- New `@BackgroundTaskId` annotation in `:backgrounder`. Put it on a `const val String` wherever the id lives — top level, `object`, or `companion object` — including the iOS tick identifier.
+- New `@BGTaskSchedulerPermittedIdentifier` annotation in `:backgrounder`. Put it on the `const val String` ids that belong in the iOS `BGTaskSchedulerPermittedIdentifiers` array — the tick identifier and any id you may schedule as a `OneTime` — wherever they live: top level, `object`, or `companion object`. iOS-only; periodic and `runNow` ids don't need it, and annotating them is harmless.
 - New `com.happycodelucky.backgrounder` Gradle plugin (`:backgrounder-gradle-plugin`, published to Maven Central). `collectBackgroundTaskIds` scans the module's compiled JVM classes for annotated constants and writes a manifest; `updateBackgrounderInfoPlist` rewrites the `BGTaskSchedulerPermittedIdentifiers` array in the configured `Info.plist` from it, touching nothing else in the file. Duplicate, blank, or non-`const` ids fail the build; non-reverse-DNS ids warn. See [Generate the iOS permitted identifiers](recipes/ios-permitted-identifiers.md).
 - The plugin has no dependency on the Kotlin Gradle plugin or on `:backgrounder`; it finds the compile task by name and matches the annotation by descriptor.
 

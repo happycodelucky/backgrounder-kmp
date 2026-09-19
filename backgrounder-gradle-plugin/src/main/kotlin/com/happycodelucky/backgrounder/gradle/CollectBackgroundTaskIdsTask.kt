@@ -12,7 +12,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
 /**
- * Scans [classDirs] for `@BackgroundTaskId` constants and writes them to
+ * Scans [classDirs] for `@BGTaskSchedulerPermittedIdentifier` constants and writes them to
  * [manifest], one id per line, sorted.
  *
  * Fails the build on: a non-`const` annotated field, an id that breaks the
@@ -36,7 +36,7 @@ public abstract class CollectBackgroundTaskIdsTask : DefaultTask() {
         val result = TaskIdScanner.scan(classDirs.files)
         val problems = mutableListOf<String>()
 
-        result.nonConstant.forEach { problems += "${it.location}: @BackgroundTaskId requires a `const val String`" }
+        result.nonConstant.forEach { problems += "${it.location}: @BGTaskSchedulerPermittedIdentifier requires a `const val String`" }
         result.ids.forEach { found ->
             TaskIdRules.problem(found.id)?.let { problems += "${found.location}: id '${found.id}' $it" }
         }
