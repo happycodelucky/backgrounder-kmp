@@ -16,7 +16,6 @@ import com.happycodelucky.backgrounder.ReachabilityGate
 import com.happycodelucky.backgrounder.ScheduleOutcome
 import com.happycodelucky.backgrounder.ScheduledTask
 import com.happycodelucky.backgrounder.SkipReason
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkConstraints
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
@@ -57,8 +56,8 @@ import kotlin.time.Instant
  * not `delayFor(1)`) is asserted to the millisecond.
  */
 class CoroutineBackedSchedulerTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.jvm")
-    private val otherTaskId = TaskId("com.happycodelucky.backgrounder.test.jvm.other")
+    private val taskId = "com.happycodelucky.backgrounder.test.jvm"
+    private val otherTaskId = "com.happycodelucky.backgrounder.test.jvm.other"
 
     // Same recognisable base as IOSPeriodicDispatcherTest (2026-01-01).
     private val epochBase: Long = 1_767_225_600_000L

@@ -17,7 +17,7 @@ public sealed interface ScheduleOutcome {
      * Common reasons:
      * - iOS task identifier missing from `BGTaskSchedulerPermittedIdentifiers`.
      * - Periodic interval below the Android 15-minute floor.
-     * - `Backgrounder.registerHandlers` not yet called on iOS / macOS.
+     * - `BackgroundTaskManager.registerHandlers` not yet called on iOS / macOS.
      */
     public data class Rejected(
         val reason: String,

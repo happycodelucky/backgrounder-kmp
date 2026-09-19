@@ -2,7 +2,6 @@ package com.happycodelucky.backgrounder.android
 
 import androidx.work.Data
 import com.happycodelucky.backgrounder.BackoffPolicy
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 
 /**
@@ -21,7 +20,7 @@ import com.happycodelucky.backgrounder.WorkInput
  *    against [Data.MAX_DATA_BYTES] (also 10240) to catch any payload whose
  *    JSON sits at the per-WorkInput cap and would push the total over once
  *    metadata keys are added (review-loop round 1, finding H-1).
- * 3. [Data] also gets the [TaskId] alongside, since [RegistryDispatchWorker]
+ * 3. [Data] also gets the task id alongside, since [RegistryDispatchWorker]
  *    is the single bridge worker class — it must read the task id from
  *    `inputData` to know which factory to invoke.
  */
@@ -36,10 +35,10 @@ internal object AndroidWorkInputMapper {
      * `PendingInstantCalls` (in-process map) holds the lambda and the
      * deferred. WorkManager re-uses this slim payload across both [Data] keys.
      */
-    fun toInstantData(taskId: TaskId): Data =
+    fun toInstantData(taskId: String): Data =
         Data
             .Builder()
-            .putString(KEY_TASK_ID, taskId.value)
+            .putString(KEY_TASK_ID, taskId)
             .build()
 
     /**
@@ -53,7 +52,7 @@ internal object AndroidWorkInputMapper {
      *   `IllegalStateException` from `Data.Builder.build()`.
      */
     fun toData(
-        taskId: TaskId,
+        taskId: String,
         input: WorkInput,
         ephemeral: Boolean,
         maxAttempts: Int,
@@ -61,7 +60,7 @@ internal object AndroidWorkInputMapper {
         try {
             Data
                 .Builder()
-                .putString(KEY_TASK_ID, taskId.value)
+                .putString(KEY_TASK_ID, taskId)
                 .putString(KEY_INPUT_JSON, input.toJson())
                 .putBoolean(KEY_EPHEMERAL, ephemeral)
                 .putInt(KEY_MAX_ATTEMPTS, maxAttempts)
@@ -83,7 +82,7 @@ internal object AndroidWorkInputMapper {
             )
         }
 
-    fun readTaskId(data: Data): TaskId? = data.getString(KEY_TASK_ID)?.let { TaskId(it) }
+    fun readTaskId(data: Data): String? = data.getString(KEY_TASK_ID)
 
     fun readInput(data: Data): WorkInput {
         val json = data.getString(KEY_INPUT_JSON) ?: return WorkInput.empty()

@@ -7,11 +7,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 
 /**
- * In-process registry of in-flight `runNow` invocations, keyed by [TaskId].
+ * In-process registry of in-flight `runNow` invocations, keyed by task id.
  *
- * Single-slot per [TaskId]: at most one [Entry] exists per id at any time. This
- * is safe because [Backgrounder.runNow] enforces pre-emption (a new `runNow`
- * for the same `TaskId` cancels the previous one before submitting), and
+ * Single-slot per task id: at most one [Entry] exists per id at any time. This
+ * is safe because [BackgroundTaskManager.runNow] enforces pre-emption (a new `runNow`
+ * for the same task id cancels the previous one before submitting), and
  * [InstantRunner.cancelInFlight] is the only other path that mutates the slot.
  *
  * Each [Entry] is a single-cell handle: the `runNow` caller registers the
@@ -29,13 +29,13 @@ import kotlinx.coroutines.Job
  */
 internal class PendingInstantCalls {
     /**
-     * One in-flight `runNow` invocation. Entries are unique per [TaskId]; the
+     * One in-flight `runNow` invocation. Entries are unique per task id; the
      * type-erased `Any` payload of [deferred] is safe because each entry is
      * created and consumed inside a single generic `runNow<R>` call frame —
      * the `R` type is never lost across boundaries.
      */
     internal class Entry(
-        val taskId: TaskId,
+        val taskId: String,
         val task: suspend () -> Any?,
         val deferred: CompletableDeferred<Any?>,
     ) {
@@ -75,7 +75,7 @@ internal class PendingInstantCalls {
 
     // MUST NOT call suspend functions inside this block — see CLAUDE.md §3.
     private val lock = SynchronizedObject()
-    private val slots: MutableMap<TaskId, Entry> = mutableMapOf()
+    private val slots: MutableMap<String, Entry> = mutableMapOf()
 
     /**
      * Insert [entry] for `entry.taskId`, returning any prior entry that was
@@ -91,7 +91,7 @@ internal class PendingInstantCalls {
      * Remove and return the entry for [taskId], or `null` if none.
      * Used by platform handlers when the OS dispatches the work.
      */
-    fun take(taskId: TaskId): Entry? =
+    fun take(taskId: String): Entry? =
         synchronized(lock) {
             slots.remove(taskId)
         }
@@ -100,7 +100,7 @@ internal class PendingInstantCalls {
      * Read the entry for [taskId] without removing it. Used by handler code
      * that wants to inspect the entry before deciding to take it.
      */
-    fun peek(taskId: TaskId): Entry? =
+    fun peek(taskId: String): Entry? =
         synchronized(lock) {
             slots[taskId]
         }
@@ -113,7 +113,7 @@ internal class PendingInstantCalls {
      * @return `true` if the entry was removed.
      */
     fun removeIfSame(
-        taskId: TaskId,
+        taskId: String,
         entry: Entry,
     ): Boolean =
         synchronized(lock) {

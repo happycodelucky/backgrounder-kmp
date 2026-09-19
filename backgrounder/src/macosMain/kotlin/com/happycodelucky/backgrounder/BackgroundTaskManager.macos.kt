@@ -5,13 +5,13 @@ import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
 /**
- * macOS factory for [Backgrounder].
+ * macOS factory for [BackgroundTaskManager].
  *
  * Hold the returned instance for the lifetime of the app — typically as a
  * stored property on `AppDelegate`. The Swift call site reads:
  *
  * ```swift
- * let backgrounder = Backgrounder.companion.create()
+ * let backgrounder = BackgroundTaskManager.companion.create()
  * backgrounder.register(taskId: SyncWorker.companion.ID) { /* SyncWorker(…) */ }
  * backgrounder.start()
  * ```
@@ -19,11 +19,11 @@ import kotlin.native.ObjCName
  * @param eventListener observability hook for `onScheduled`, `onStarted`,
  *   `onCompleted`, `onCancelled`. Defaults to [BackgrounderEventListener.Noop].
  *
- * @return a constructed but not-yet-started [Backgrounder]. Call
- *   [Backgrounder.register] for every task id, then
- *   [Backgrounder.start] from `applicationDidFinishLaunching`.
+ * @return a constructed but not-yet-started [BackgroundTaskManager]. Call
+ *   [BackgroundTaskManager.register] for every task id, then
+ *   [BackgroundTaskManager.start] from `applicationDidFinishLaunching`.
  *
- * Call [Backgrounder.shutdown] from `applicationWillTerminate` to
+ * Call [BackgroundTaskManager.shutdown] from `applicationWillTerminate` to
  * cancel the scheduler's coroutine scope cleanly.
  *
  * The pre-execution `WorkConstraints.networkRequired` gate reads from
@@ -36,5 +36,9 @@ import kotlin.native.ObjCName
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "create")
-public fun Backgrounder.Companion.create(eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop): Backgrounder =
-    MacOSBackgrounderBuilder.build(eventListener)
+public fun BackgroundTaskManager.Companion.create(
+    eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop,
+): BackgroundTaskManager = MacOSBackgrounderBuilder.build(eventListener)
+
+/** macOS needs no configuration, so `BackgroundTaskManager.shared` builds on first access. */
+internal actual fun createDefaultBackgrounder(): BackgroundTaskManager = BackgroundTaskManager.create()

@@ -12,9 +12,9 @@ import kotlin.test.assertTrue
  * surfaces are exercised by their own platform test suites.
  */
 class InspectorApiTest {
-    private val taskA = TaskId("com.example.a")
-    private val taskB = TaskId("com.example.b")
-    private val taskC = TaskId("com.example.c")
+    private val taskA = "com.example.a"
+    private val taskB = "com.example.b"
+    private val taskC = "com.example.c"
 
     private val noopWorker =
         object : BackgroundWorker {
@@ -31,7 +31,7 @@ class InspectorApiTest {
         assertEquals(
             listOf(taskA, taskB),
             descriptors.filterIsInstance<FactoryDescriptor.PerId>().map { it.taskId },
-            "PerId descriptors should be sorted ascending by TaskId.value for stable inspector output",
+            "PerId descriptors should be sorted ascending by String for stable inspector output",
         )
         descriptors.forEach { d ->
             assertEquals(null, d.factoryId, "PerId closures have no factoryId")
@@ -43,9 +43,9 @@ class InspectorApiTest {
         val factory =
             object : BackgroundWorkerFactory {
                 override val factoryId: String = "auth-module"
-                override val taskIds: Set<TaskId> = setOf(taskA, taskB)
+                override val taskIds: Set<String> = setOf(taskA, taskB)
 
-                override fun create(taskId: TaskId): BackgroundWorker = noopWorker
+                override fun create(taskId: String): BackgroundWorker = noopWorker
             }
         val registry = WorkerRegistry()
         registry.register(factory)
@@ -60,9 +60,9 @@ class InspectorApiTest {
     fun bulk_factory_without_factoryId_falls_back_to_null() {
         val factory =
             object : BackgroundWorkerFactory {
-                override val taskIds: Set<TaskId> = setOf(taskC)
+                override val taskIds: Set<String> = setOf(taskC)
 
-                override fun create(taskId: TaskId): BackgroundWorker = noopWorker
+                override fun create(taskId: String): BackgroundWorker = noopWorker
             }
         val registry = WorkerRegistry()
         registry.register(factory)
@@ -74,9 +74,9 @@ class InspectorApiTest {
         val factory =
             object : BackgroundWorkerFactory {
                 override val factoryId: String = "module"
-                override val taskIds: Set<TaskId> = setOf(taskC)
+                override val taskIds: Set<String> = setOf(taskC)
 
-                override fun create(taskId: TaskId): BackgroundWorker = noopWorker
+                override fun create(taskId: String): BackgroundWorker = noopWorker
             }
         val registry = WorkerRegistry()
         registry.register(factory)

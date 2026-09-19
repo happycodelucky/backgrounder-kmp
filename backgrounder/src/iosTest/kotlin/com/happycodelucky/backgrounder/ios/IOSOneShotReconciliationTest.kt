@@ -1,7 +1,6 @@
 package com.happycodelucky.backgrounder.ios
 
 import com.happycodelucky.backgrounder.NetworkRequirement
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
@@ -17,11 +16,11 @@ import kotlin.test.assertTrue
  * pending set — the real `BGTaskScheduler` query needs a live app host.
  */
 class IOSOneShotReconciliationTest {
-    private val deadId = TaskId("com.happycodelucky.backgrounder.test.dead")
-    private val pendingId = TaskId("com.happycodelucky.backgrounder.test.pending")
-    private val periodicId = TaskId("com.happycodelucky.backgrounder.test.periodic")
+    private val deadId = "com.happycodelucky.backgrounder.test.dead"
+    private val pendingId = "com.happycodelucky.backgrounder.test.pending"
+    private val periodicId = "com.happycodelucky.backgrounder.test.periodic"
 
-    private fun IOSStateStore.writeOneShot(taskId: TaskId) {
+    private fun IOSStateStore.writeOneShot(taskId: String) {
         writeOnSchedule(
             taskId = taskId,
             kind = IOSStateStore.Kind.OneShot,
@@ -46,7 +45,7 @@ class IOSOneShotReconciliationTest {
 
         // Only `pendingId` has a pending OS request — `deadId`'s was consumed
         // by the BGTask launch that then died with the process.
-        reconciliation.apply(candidates, pendingIdentifiers = setOf(pendingId.value))
+        reconciliation.apply(candidates, pendingIdentifiers = setOf(pendingId))
 
         assertFalse(state.readActive(deadId), "dead one-shot must be cleared")
         assertEquals(null, state.readKind(deadId), "dead one-shot state fully wiped")

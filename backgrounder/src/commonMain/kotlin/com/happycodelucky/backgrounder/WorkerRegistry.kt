@@ -7,10 +7,10 @@ import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
 /**
- * The DI seam: resolves a stable [TaskId] to a fresh [BackgroundWorker] per
+ * The DI seam: resolves a stable task id to a fresh [BackgroundWorker] per
  * invocation. Two registration shapes feed it:
  *
- *  - **Per-id**: [register] taking a `TaskId` + closure. One id, one factory
+ *  - **Per-id**: [register] taking a task id + closure. One id, one factory
  *    lambda. The closure closes over the user's DI graph.
  *  - **Bulk**: [register] taking a [BackgroundWorkerFactory]. One factory
  *    object owns many ids and resolves the concrete worker lazily.
@@ -23,7 +23,7 @@ import kotlin.native.ObjCName
  * must not overlap (factory-vs-factory or factory-vs-per-id) — overlapping
  * registration throws, so resolution is always unambiguous.
  *
- * Register everything at app launch *before* `Backgrounder.start()`. The
+ * Register everything at app launch *before* `BackgroundTaskManager.start()`. The
  * registry is sealed at `start()`; re-registering after that throws.
  *
  * `@OptIn(ExperimentalObjCName::class)`: Swift-rename annotations so iOS app
@@ -33,14 +33,14 @@ import kotlin.native.ObjCName
 public class WorkerRegistry internal constructor() {
     // MUST NOT call suspend functions inside this block — see CLAUDE.md §3.
     private val lock = SynchronizedObject()
-    private val factories: MutableMap<TaskId, () -> BackgroundWorker> = mutableMapOf()
+    private val factories: MutableMap<String, () -> BackgroundWorker> = mutableMapOf()
     private val factoryChain: MutableList<BackgroundWorkerFactory> = mutableListOf()
     private val sealed = atomic(false)
 
     /**
      * Associate [taskId] with a [factory] that builds a fresh [BackgroundWorker] per dispatch.
      *
-     * Must be called before [Backgrounder.start]. Throws if the registry is already sealed or
+     * Must be called before [BackgroundTaskManager.start]. Throws if the registry is already sealed or
      * [taskId] is already claimed by another per-id registration or a [BackgroundWorkerFactory].
      *
      * @throws IllegalStateException if the registry is sealed.
@@ -49,11 +49,12 @@ public class WorkerRegistry internal constructor() {
     @ObjCName(swiftName = "register")
     @Throws(IllegalStateException::class, IllegalArgumentException::class)
     public fun register(
-        taskId: TaskId,
+        taskId: String,
         factory: () -> BackgroundWorker,
     ): Unit =
         synchronized(lock) {
             checkNotSealed()
+            requireValidTaskId(taskId)
             require(taskId !in factories) {
                 "WorkerRegistry: task id '$taskId' is already registered."
             }
@@ -68,7 +69,7 @@ public class WorkerRegistry internal constructor() {
      * Register a [BackgroundWorkerFactory] that owns the ids in
      * [BackgroundWorkerFactory.taskIds].
      *
-     * Must be called before [Backgrounder.start]. Throws if the registry is already sealed or
+     * Must be called before [BackgroundTaskManager.start]. Throws if the registry is already sealed or
      * any of the factory's ids collide with a per-id registration or another factory.
      *
      * @throws IllegalStateException if the registry is sealed.
@@ -84,6 +85,7 @@ public class WorkerRegistry internal constructor() {
                 "WorkerRegistry: BackgroundWorkerFactory declares no task ids."
             }
             factory.taskIds.forEach { taskId ->
+                requireValidTaskId(taskId)
                 require(taskId !in factories) {
                     "WorkerRegistry: task id '$taskId' is already registered."
                 }
@@ -101,7 +103,7 @@ public class WorkerRegistry internal constructor() {
      * Snapshot — safe to call at any time.
      */
     @ObjCName(swiftName = "registeredIds")
-    public fun registeredIds(): Set<TaskId> =
+    public fun registeredIds(): Set<String> =
         synchronized(lock) {
             buildSet {
                 addAll(factories.keys)
@@ -116,7 +118,7 @@ public class WorkerRegistry internal constructor() {
      *
      * Order is registration order: per-id registrations interleave naturally
      * with bulk factories in the order each appears here, but the public
-     * surface presents per-ids first (sorted by [TaskId.value] for stability)
+     * surface presents per-ids first (sorted by task id for stability)
      * then bulk factories (in registration order) so the inspector output
      * stays deterministic across calls.
      */
@@ -124,7 +126,7 @@ public class WorkerRegistry internal constructor() {
     public fun factoryDescriptors(): List<FactoryDescriptor> =
         synchronized(lock) {
             buildList {
-                factories.keys.sortedBy { it.value }.forEach { id ->
+                factories.keys.sorted().forEach { id ->
                     add(FactoryDescriptor.PerId(taskId = id))
                 }
                 factoryChain.forEach { factory ->
@@ -146,7 +148,7 @@ public class WorkerRegistry internal constructor() {
         }
     }
 
-    internal fun create(taskId: TaskId): BackgroundWorker {
+    internal fun create(taskId: String): BackgroundWorker {
         // Resolve under the lock, invoke OUTSIDE it (B-021). Factories are user
         // code — running them while holding the registry lock serializes every
         // concurrent dispatch behind the slowest factory, and deadlocks if a
@@ -169,7 +171,7 @@ public class WorkerRegistry internal constructor() {
     }
 
     public class NoFactoryRegisteredException(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : IllegalStateException("No BackgroundWorker factory registered for task id '$taskId'")
 
     /**
@@ -179,7 +181,7 @@ public class WorkerRegistry internal constructor() {
      * sync contract.
      */
     public class FactoryDeclinedException(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : IllegalStateException(
             "BackgroundWorkerFactory declared task id '$taskId' but create() returned null for it",
         )

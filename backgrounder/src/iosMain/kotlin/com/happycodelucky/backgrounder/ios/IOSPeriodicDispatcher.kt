@@ -10,7 +10,6 @@ import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PlatformCapabilities
 import com.happycodelucky.backgrounder.ReachabilityGate
 import com.happycodelucky.backgrounder.SkipReason
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
@@ -34,7 +33,7 @@ import kotlin.time.Clock
  *
  * **Coalescing contract.** When [dispatchDueWork] is called, the dispatcher:
  *
- *  1. Snapshots the set of due `TaskId`s — periodics whose persisted
+ *  1. Snapshots the set of due task ids — periodics whose persisted
  *     `nextRunEpochMs` is in the past.
  *  2. For each, acquires the per-task `Mutex` ([IOSTaskMutexes]) — different
  *     ids run concurrently; same id is serialized.
@@ -120,7 +119,7 @@ internal class IOSPeriodicDispatcher(
             log.d { "dispatchDueWork: nothing due (now=$now)" }
             return
         }
-        log.d { "dispatchDueWork: ${due.size} due (now=$now): ${due.joinToString { it.value }}" }
+        log.d { "dispatchDueWork: ${due.size} due (now=$now): ${due.joinToString()}" }
         // Launch each worker on the supplied scope (so cancellation
         // propagates from the foreground feed's lifecycle scope or the
         // background feed's BGTask-expiration-bound scope), then joinAll on
@@ -133,7 +132,7 @@ internal class IOSPeriodicDispatcher(
     }
 
     private suspend fun runOne(
-        taskId: TaskId,
+        taskId: String,
         capabilities: PlatformCapabilities,
     ) {
         mutexes.withMutex(taskId) {
@@ -298,7 +297,7 @@ internal class IOSPeriodicDispatcher(
     }
 
     private fun applyResult(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
         result: WorkResult,
         intervalMs: Long,
@@ -356,6 +355,6 @@ internal class IOSPeriodicDispatcher(
      * existing one-shot fallback in `BGTaskBackedScheduler.backoffPolicyForRetry`.
      */
     private fun backoffPolicyForRetry(
-        @Suppress("unused", "UNUSED_PARAMETER") taskId: TaskId,
+        @Suppress("unused", "UNUSED_PARAMETER") taskId: String,
     ): BackoffPolicy = BackoffPolicy.exponential()
 }

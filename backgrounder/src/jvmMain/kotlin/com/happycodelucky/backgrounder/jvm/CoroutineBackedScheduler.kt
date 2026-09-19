@@ -17,7 +17,6 @@ import com.happycodelucky.backgrounder.ScheduledTask
 import com.happycodelucky.backgrounder.Scheduler
 import com.happycodelucky.backgrounder.SchedulerGuarantees
 import com.happycodelucky.backgrounder.SkipReason
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
@@ -99,16 +98,16 @@ internal class CoroutineBackedScheduler(
      * CLAUDE.md §3 and Scheduler KDoc).
      */
     private val lock = SynchronizedObject()
-    private val jobs: MutableMap<TaskId, Job> = mutableMapOf()
-    private val attempts: MutableMap<TaskId, Int> = mutableMapOf()
-    private val kinds: MutableMap<TaskId, ScheduledTask.Kind> = mutableMapOf()
+    private val jobs: MutableMap<String, Job> = mutableMapOf()
+    private val attempts: MutableMap<String, Int> = mutableMapOf()
+    private val kinds: MutableMap<String, ScheduledTask.Kind> = mutableMapOf()
 
     /**
      * The next planned fire per task id, in epoch milliseconds. Source for
      * `WorkStarted.expectedAt`, `ScheduledTask.nextRunHint`, and the backoff
      * predicate's `until`. Always computed from the injected [clock] (N-011).
      */
-    private val nextRunEpochMs: MutableMap<TaskId, Long> = mutableMapOf()
+    private val nextRunEpochMs: MutableMap<String, Long> = mutableMapOf()
 
     override fun schedule(
         request: WorkRequest,
@@ -433,7 +432,7 @@ internal class CoroutineBackedScheduler(
      * `PendingInstantCalls`).
      */
     private fun clearTracking(
-        taskId: TaskId,
+        taskId: String,
         self: Job,
     ) {
         val removed =
@@ -449,7 +448,7 @@ internal class CoroutineBackedScheduler(
         if (!removed) log.d { "[$taskId] terminal cleanup skipped — slot owned by a newer schedule" }
     }
 
-    override fun cancel(taskId: TaskId): CancelOutcome {
+    override fun cancel(taskId: String): CancelOutcome {
         val cancelled: Job? =
             synchronized(lock) {
                 val job = jobs.remove(taskId) ?: return@synchronized null
@@ -474,7 +473,7 @@ internal class CoroutineBackedScheduler(
     }
 
     override fun cancelAll(): CancelOutcome {
-        val snapshot: List<Pair<TaskId, Job>> =
+        val snapshot: List<Pair<String, Job>> =
             synchronized(lock) {
                 if (jobs.isEmpty()) return@synchronized emptyList()
                 val snap = jobs.entries.map { it.key to it.value }
@@ -523,7 +522,7 @@ internal class CoroutineBackedScheduler(
 
     override fun guarantees(): SchedulerGuarantees = JVM_GUARANTEES
 
-    /** Cancel everything and stop the scope. Called by Backgrounder.shutdown via the JVM builder. */
+    /** Cancel everything and stop the scope. Called by BackgroundTaskManager.shutdown via the JVM builder. */
     fun shutdown() {
         cancelAll()
         scope.cancel()

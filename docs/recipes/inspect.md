@@ -15,7 +15,7 @@ tasks.forEach { task ->
 
 | Field                | Meaning                                                                                        |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
-| `taskId`             | The stable `TaskId` you scheduled.                                                             |
+| `taskId`             | The task id you scheduled.                                                             |
 | `kind`               | `OneTime` or `Periodic`.                                                                       |
 | `state`              | One of `Pending`, `Running`, `Backoff`, `Blocked`. Best-effort per platform — see below.       |
 | `nextRunHint`        | Best-effort `Instant` of the next scheduled run. May be `null`.                                |

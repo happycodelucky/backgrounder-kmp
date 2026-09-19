@@ -9,7 +9,6 @@ import com.happycodelucky.backgrounder.PlatformCapabilities
 import com.happycodelucky.backgrounder.WorkInput
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -40,18 +39,18 @@ class SyncWorkerTest {
 
 ## Asserting against scheduling logic
 
-For code that *schedules* work (rather than the worker body itself), you'll want to test against a `Backgrounder` substitute that records what was scheduled without actually invoking a platform scheduler.
+For code that *schedules* work (rather than the worker body itself), you'll want to test against a `BackgroundTaskManager` substitute that records what was scheduled without actually invoking a platform scheduler.
 
-In v1, the library ships an internal `FakeScheduler` for its own `commonTest` suite. A published `:testing` artifact with a stable, public fake `Backgrounder` or `FakeScheduler` API is **planned for v2** so consumers can use the same fake from their `commonTest`.
+In v1, the library ships an internal `FakeScheduler` for its own `commonTest` suite. A published `:testing` artifact with a stable, public fake `BackgroundTaskManager` or `FakeScheduler` API is **planned for v2** so consumers can use the same fake from their `commonTest`.
 
 Until v2 ships, the practical alternatives are:
 
 1. **Wrap scheduling calls behind your own interface** — e.g. an `AppScheduler` interface your business logic depends on, with a fake implementation in test code. Three lines of indirection; lets you assert against a recorder.
-2. **Use the v1 contract test as a reference** — the [`SchedulerContractTest`](https://github.com/happycodelucky/backgrounder/blob/main/backgrounder/src/commonTest/kotlin/com/happycodelucky/backgrounder/SchedulerContractTest.kt) inside the library's own test source set is a worked example of the scheduling contract; you can copy the pattern.
+2. **Use the v1 contract test as a reference** — the [`SchedulerContractTest`](https://github.com/happycodelucky/backgrounder-kmp/blob/main/backgrounder/src/commonTest/kotlin/com/happycodelucky/backgrounder/SchedulerContractTest.kt) inside the library's own test source set is a worked example of the scheduling contract; you can copy the pattern.
 
 ## Testing on Android with `WorkManagerTestInitHelper`
 
-The `androidx.work:work-testing` library provides `WorkManagerTestInitHelper` for end-to-end testing on the Android JVM (Robolectric required). Backgrounder's own Android tests use it; see the [`WorkManagerSchedulerTest`](https://github.com/happycodelucky/backgrounder/blob/main/backgrounder/src/androidHostTest/kotlin/com/happycodelucky/backgrounder/android/WorkManagerSchedulerTest.kt) (when it lands) for a worked example.
+The `androidx.work:work-testing` library provides `WorkManagerTestInitHelper` for end-to-end testing on the Android JVM (Robolectric required). Backgrounder's own Android tests use it; see the [`WorkManagerSchedulerTest`](https://github.com/happycodelucky/backgrounder-kmp/blob/main/backgrounder/src/androidHostTest/kotlin/com/happycodelucky/backgrounder/android/WorkManagerSchedulerTest.kt) (when it lands) for a worked example.
 
 ## Testing on iOS
 

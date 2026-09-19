@@ -10,7 +10,6 @@ import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.ReachabilityGate
 import com.happycodelucky.backgrounder.ScheduleOutcome
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerRegistry
@@ -35,26 +34,26 @@ import kotlin.test.assertTrue
  * host, which unit tests don't have (see B-004 / BGSubmitResult.kt).
  */
 class BGTaskBackedSchedulerSubmitFailureTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.submitfail")
+    private val taskId = "com.happycodelucky.backgrounder.test.submitfail"
 
     private class NoopListener : BackgrounderEventListener {
         override fun onScheduled(
-            taskId: TaskId,
+            taskId: String,
             request: WorkRequest,
         ) = Unit
 
         override fun onStarted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
         ) = Unit
 
         override fun onCompleted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
             result: WorkResult,
         ) = Unit
 
-        override fun onCancelled(taskId: TaskId) = Unit
+        override fun onCancelled(taskId: String) = Unit
     }
 
     private class Rig(

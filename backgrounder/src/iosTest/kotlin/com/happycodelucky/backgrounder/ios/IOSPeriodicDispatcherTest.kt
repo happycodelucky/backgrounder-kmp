@@ -6,7 +6,6 @@ import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.NetworkRequirement
 import com.happycodelucky.backgrounder.PlatformCapabilities
 import com.happycodelucky.backgrounder.ReachabilityGate
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
@@ -53,8 +52,8 @@ import kotlin.time.Duration.Companion.minutes
  * unreproducible race" approach.
  */
 class IOSPeriodicDispatcherTest {
-    private val periodicId = TaskId("com.happycodelucky.backgrounder.test.periodic")
-    private val otherId = TaskId("com.happycodelucky.backgrounder.test.periodic2")
+    private val periodicId = "com.happycodelucky.backgrounder.test.periodic"
+    private val otherId = "com.happycodelucky.backgrounder.test.periodic2"
 
     // Small but realistic budget so workers don't have to think about it.
     private val capabilities = PlatformCapabilities(maxExecutionTime = 5.minutes, cancelsInFlight = false)
@@ -111,7 +110,7 @@ class IOSPeriodicDispatcherTest {
     /** Schedule a periodic at the current virtual time. nextRunEpochMs = now + intervalMs. */
     private fun TestScope.schedulePeriodic(
         rig: Rig,
-        id: TaskId,
+        id: String,
         interval: Duration,
     ) {
         val now = epochBase + testScheduler.currentTime
@@ -367,29 +366,29 @@ class IOSPeriodicDispatcherTest {
     )
 
     private class RecordingListener : BackgrounderEventListener {
-        val started = mutableListOf<Pair<TaskId, Int>>()
-        val completed = mutableListOf<Triple<TaskId, Int, WorkResult>>()
+        val started = mutableListOf<Pair<String, Int>>()
+        val completed = mutableListOf<Triple<String, Int, WorkResult>>()
 
         override fun onScheduled(
-            taskId: TaskId,
+            taskId: String,
             request: com.happycodelucky.backgrounder.WorkRequest,
         ) = Unit
 
         override fun onStarted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
         ) {
             started.add(taskId to attempt)
         }
 
         override fun onCompleted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
             result: WorkResult,
         ) {
             completed.add(Triple(taskId, attempt, result))
         }
 
-        override fun onCancelled(taskId: TaskId) = Unit
+        override fun onCancelled(taskId: String) = Unit
     }
 }

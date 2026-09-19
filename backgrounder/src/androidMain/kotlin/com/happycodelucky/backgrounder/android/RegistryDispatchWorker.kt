@@ -20,7 +20,7 @@ import androidx.work.ListenableWorker.Result as AndroidResult
 /**
  * The *only* [androidx.work.Worker] class registered with WorkManager.
  *
- * Reads the [TaskId][com.happycodelucky.backgrounder.TaskId] from `inputData`, asks the
+ * Reads the task id[com.happycodelucky.backgrounder.String] from `inputData`, asks the
  * [WorkerRegistry] for a fresh [BackgroundWorker][com.happycodelucky.backgrounder.BackgroundWorker],
  * runs it, maps [WorkResult] back to a WorkManager [AndroidResult], and applies
  * the cross-platform `maxAttempts` cap on [WorkResult.Retry].
@@ -79,7 +79,7 @@ internal class RegistryDispatchWorker(
             // would resurrect work the app may no longer define.
             if (ephemeral && !ready) {
                 tagged.w {
-                    "fired before Backgrounder.markReady(); ephemeral request purged " +
+                    "fired before BackgroundTaskManager.markReady(); ephemeral request purged " +
                         "(terminal failure — ephemeral work never retries across process death)"
                 }
                 val now = Clock.System.now()

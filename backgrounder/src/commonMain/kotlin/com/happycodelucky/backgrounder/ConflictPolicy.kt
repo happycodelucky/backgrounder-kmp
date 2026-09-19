@@ -1,7 +1,7 @@
 package com.happycodelucky.backgrounder
 
 /**
- * What [Scheduler.schedule] does when a request with the same [TaskId] is
+ * What [Scheduler.schedule] does when a request with the same task id is
  * already pending.
  *
  * `Append` (Android-only chained work) is v2; v1 has the two cross-platform

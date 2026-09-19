@@ -12,8 +12,8 @@ import kotlin.native.ObjCName
  *  - scheduling verbs ([schedule], [cancel], [cancelAll], [scheduled],
  *    [guarantees]): the scheduling surface, promoted directly onto the
  *    instance. There is no separate `Scheduler` object to hold — pass the
- *    `Backgrounder` instance itself down the app graph.
- *  - [register]: associate a `TaskId` with a factory closure that builds a
+ *    `BackgroundTaskManager` instance itself down the app graph.
+ *  - [register]: associate a task id with a factory closure that builds a
  *    fresh `BackgroundWorker` per dispatch.
  *  - [start]: finalize init (seals the registry; iOS/macOS run the ephemeral
  *    sweep + register OS handlers + resurrect periodic schedules; Android
@@ -22,17 +22,16 @@ import kotlin.native.ObjCName
  *    Android is a no-op. Safe to call repeatedly.
  *
  * Construct via the per-platform extension factory:
- *   - `androidMain`: [Backgrounder.Companion.create] taking an `Application`.
- *   - `iosMain`: [Backgrounder.Companion.create] (no required args).
- *   - `macosMain`:   [Backgrounder.Companion.create] (no required args).
- *   - `jvmMain`: [Backgrounder.Companion.create] (no required args).
+ *   - `androidMain`: [BackgroundTaskManager.Companion.create] taking an `Application`.
+ *   - `iosMain`: [BackgroundTaskManager.Companion.create] (no required args).
+ *   - `macosMain`:   [BackgroundTaskManager.Companion.create] (no required args).
+ *   - `jvmMain`: [BackgroundTaskManager.Companion.create] (no required args).
  *
  * `@OptIn(ExperimentalObjCName::class)`: standard SKIE annotation; stable in
  * practice and required for boundary refinement (CLAUDE.md §8).
  */
 @OptIn(ExperimentalObjCName::class)
-@ObjCName(swiftName = "Backgrounder")
-public class Backgrounder internal constructor(
+public class BackgroundTaskManager internal constructor(
     private val engine: BackgrounderEngine,
 ) {
     /**
@@ -50,14 +49,14 @@ public class Backgrounder internal constructor(
     @ObjCName(swiftName = "register")
     @Throws(IllegalStateException::class, IllegalArgumentException::class)
     public fun register(
-        taskId: TaskId,
+        taskId: String,
         factory: () -> BackgroundWorker,
     ) {
         engine.registry.register(taskId, factory)
     }
 
     /**
-     * Register a [BackgroundWorkerFactory] that owns many [TaskId]s at once.
+     * Register a [BackgroundWorkerFactory] that owns many task ids at once.
      * Must be called before [start]. Throws if [start] has already run, or
      * any of the factory's [BackgroundWorkerFactory.taskIds] collide with an
      * existing per-id registration or another factory.
@@ -134,7 +133,7 @@ public class Backgrounder internal constructor(
      * Snapshot; safe to call at any time, before or after [start].
      */
     @ObjCName(swiftName = "registeredTaskIds")
-    public fun registeredTaskIds(): Set<TaskId> = engine.registry.registeredIds()
+    public fun registeredTaskIds(): Set<String> = engine.registry.registeredIds()
 
     /**
      * Inspector view of every registered factory — one [FactoryDescriptor]
@@ -215,7 +214,7 @@ public class Backgrounder internal constructor(
      * it doesn't treat the process as crashed. SKIE bridges this as Swift
      * `async throws -> R`.
      *
-     * **iOS `Info.plist` requirement.** [taskId]`.value` *must* appear in the
+     * **iOS `Info.plist` requirement.** [taskId] *must* appear in the
      * app's `BGTaskSchedulerPermittedIdentifiers` array. If it does not,
      * `BGTaskScheduler.submit` rejects the request and `runNow` throws an
      * `IllegalStateException` whose message names the missing identifier.
@@ -224,13 +223,14 @@ public class Backgrounder internal constructor(
      *   the platform refuses the request (iOS only — see above).
      */
     @ObjCName(swiftName = "run")
-    @Throws(IllegalStateException::class)
+    @Throws(IllegalStateException::class, IllegalArgumentException::class)
     public suspend fun <R> runNow(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R {
+        requireValidTaskId(taskId)
         check(engine.isStarted) {
-            "Backgrounder.runNow($taskId): start() has not been called yet."
+            "BackgroundTaskManager.runNow($taskId): start() has not been called yet."
         }
         // Pre-empt anything else for this id (in-flight runNow, pending schedule,
         // in-flight scheduled worker). The prior runNow caller — if any — sees
@@ -261,7 +261,7 @@ public class Backgrounder internal constructor(
      * in-flight [runNow] calls.
      */
     @ObjCName(swiftName = "cancel")
-    public fun cancel(taskId: TaskId): CancelOutcome {
+    public fun cancel(taskId: String): CancelOutcome {
         val schedulerOutcome = engine.scheduler.cancel(taskId)
         val cancelledRunNow = engine.instantRunner.cancelInFlight(taskId)
         return when (schedulerOutcome) {
@@ -292,14 +292,18 @@ public class Backgrounder internal constructor(
     @ObjCName(swiftName = "shutdown")
     public fun shutdown() {
         engine.shutdown()
+        // Free the process-wide slot so a fresh instance can be created.
+        SharedBackgroundTaskManager.release(this)
     }
 
     /**
-     * Companion object exists so per-platform source sets can install a
-     * `Backgrounder.Companion.create(...)` extension factory. (`commonMain`
-     * cannot define `create` because the Android variant requires an
+     * Companion object exists so per-platform source sets can install
+     * extension entry points: `BackgroundTaskManager.shared` (commonMain),
+     * `BackgroundTaskManager.configure(application)` (Android), and
+     * `BackgroundTaskManager.create(...)` (iOS / macOS / JVM). `commonMain` cannot
+     * define the constructors itself because the Android variant requires an
      * `Application` and the Apple variants don't — there's no common
-     * signature that doesn't leak `Any?`.)
+     * signature that doesn't leak `Any?`.
      */
     public companion object
 }

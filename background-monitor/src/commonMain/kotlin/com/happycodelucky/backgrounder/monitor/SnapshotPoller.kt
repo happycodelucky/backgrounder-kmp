@@ -1,7 +1,7 @@
 package com.happycodelucky.backgrounder.monitor
 
 import co.touchlab.kermit.Logger
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.PlatformDiagnostics
 import com.happycodelucky.backgrounder.ScheduledTask
 import kotlinx.atomicfu.atomic
@@ -20,8 +20,8 @@ import kotlin.native.ObjCName
 import kotlin.time.Duration
 
 /**
- * Polls the inspector APIs ([Backgrounder.scheduled] /
- * [Backgrounder.diagnostics]) on an interval and surfaces the latest
+ * Polls the inspector APIs ([BackgroundTaskManager.scheduled] /
+ * [BackgroundTaskManager.diagnostics]) on an interval and surfaces the latest
  * snapshot through a [StateFlow] pair.
  *
  * Inspector UIs typically want both the *event stream* (via [Monitor]) and
@@ -48,7 +48,7 @@ import kotlin.time.Duration
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "SnapshotPoller")
 public class SnapshotPoller(
-    private val backgrounder: Backgrounder,
+    private val backgrounder: BackgroundTaskManager,
     private val interval: Duration,
 ) {
     private val _scheduled = MutableStateFlow<List<ScheduledTask>?>(null)

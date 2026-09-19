@@ -10,14 +10,14 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for [PendingInstantCalls] — the single-slot, per-`TaskId`
+ * Unit tests for [PendingInstantCalls] — the single-slot, per-task id
  * registry the platform instant runners share.
  */
 class PendingInstantCallsTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.runNow")
-    private val otherId = TaskId("com.happycodelucky.backgrounder.test.other")
+    private val taskId = "com.happycodelucky.backgrounder.test.runNow"
+    private val otherId = "com.happycodelucky.backgrounder.test.other"
 
-    private fun newEntry(id: TaskId = taskId): PendingInstantCalls.Entry =
+    private fun newEntry(id: String = taskId): PendingInstantCalls.Entry =
         PendingInstantCalls.Entry(
             taskId = id,
             task = { "ok" },

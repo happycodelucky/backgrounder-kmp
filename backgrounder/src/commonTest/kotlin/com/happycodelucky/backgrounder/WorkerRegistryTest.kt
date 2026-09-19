@@ -7,8 +7,8 @@ import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 
 class WorkerRegistryTest {
-    private val syncId = TaskId("com.happycodelucky.backgrounder.test.sync")
-    private val uploadId = TaskId("com.happycodelucky.backgrounder.test.upload")
+    private val syncId = "com.happycodelucky.backgrounder.test.sync"
+    private val uploadId = "com.happycodelucky.backgrounder.test.upload"
 
     // Object expression (not a SAM lambda) so the runtime hands us a *new*
     // instance per invocation — what the registry contract requires.
@@ -20,11 +20,11 @@ class WorkerRegistryTest {
     // A factory that owns [ownedIds] and builds a worker for each. [overrides]
     // lets a test force a specific worker (or null) for an id.
     private class StubFactory(
-        override val taskIds: Set<TaskId>,
-        private val overrides: Map<TaskId, BackgroundWorker?> = emptyMap(),
+        override val taskIds: Set<String>,
+        private val overrides: Map<String, BackgroundWorker?> = emptyMap(),
         private val build: () -> BackgroundWorker,
     ) : BackgroundWorkerFactory {
-        override fun create(taskId: TaskId): BackgroundWorker? =
+        override fun create(taskId: String): BackgroundWorker? =
             when {
                 taskId in overrides -> overrides[taskId]
                 taskId in taskIds -> build()
@@ -62,7 +62,7 @@ class WorkerRegistryTest {
     @Test
     fun missingFactoryThrows() {
         val registry = WorkerRegistry()
-        val missing = TaskId("com.happycodelucky.backgrounder.test.never_registered")
+        val missing = "com.happycodelucky.backgrounder.test.never_registered"
         assertFailsWith<WorkerRegistry.NoFactoryRegisteredException> {
             registry.create(missing)
         }
@@ -93,7 +93,7 @@ class WorkerRegistryTest {
 
     @Test
     fun registeredIdsUnionsPerIdAndFactoryIds() {
-        val otherId = TaskId("com.happycodelucky.backgrounder.test.other")
+        val otherId = "com.happycodelucky.backgrounder.test.other"
         val registry = WorkerRegistry()
         registry.register(syncId) { newWorker() }
         registry.register(StubFactory(setOf(uploadId, otherId)) { newWorker() })
@@ -188,7 +188,7 @@ class WorkerRegistryTest {
     @Test
     fun factoryCanCallBackIntoRegistryDuringCreate() {
         val registry = WorkerRegistry()
-        var seenDuringPerIdCreate: Set<TaskId>? = null
+        var seenDuringPerIdCreate: Set<String>? = null
         registry.register(syncId) {
             seenDuringPerIdCreate = registry.registeredIds()
             newWorker()
@@ -196,9 +196,9 @@ class WorkerRegistryTest {
         var seenDuringBulkCreate: List<FactoryDescriptor>? = null
         registry.register(
             object : BackgroundWorkerFactory {
-                override val taskIds: Set<TaskId> = setOf(uploadId)
+                override val taskIds: Set<String> = setOf(uploadId)
 
-                override fun create(taskId: TaskId): BackgroundWorker {
+                override fun create(taskId: String): BackgroundWorker {
                     seenDuringBulkCreate = registry.factoryDescriptors()
                     return newWorker()
                 }

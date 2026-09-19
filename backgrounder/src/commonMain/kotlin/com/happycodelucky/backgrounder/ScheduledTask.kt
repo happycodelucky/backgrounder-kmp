@@ -14,8 +14,8 @@ import kotlin.time.Instant
  *   that span is reported as [State.Pending] rather than [State.Running].
  */
 public data class ScheduledTask(
-    /** The stable reverse-DNS identifier this task was scheduled under. */
-    public val taskId: TaskId,
+    /** The task id this task was scheduled under. */
+    public val taskId: String,
     /** Whether this task was scheduled as a one-time or repeating request. */
     public val kind: Kind,
     /** Current execution state; see [State] for per-platform accuracy caveats. */

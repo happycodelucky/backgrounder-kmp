@@ -1,13 +1,12 @@
 package com.happycodelucky.backgrounder.ios
 
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Per-[TaskId] [Mutex] map.
+ * Per-task id [Mutex] map.
  *
  * Concurrency in iOS scheduling: BGTaskScheduler may fire two distinct task
  * identifiers concurrently, and the user's code can call
@@ -22,14 +21,14 @@ internal class IOSTaskMutexes {
     // worker execution. See CLAUDE.md §3.
     // MUST NOT call suspend functions inside this synchronized() block.
     private val lock = SynchronizedObject()
-    private val mutexes: MutableMap<TaskId, Mutex> = mutableMapOf()
+    private val mutexes: MutableMap<String, Mutex> = mutableMapOf()
 
     suspend inline fun <T> withMutex(
-        taskId: TaskId,
+        taskId: String,
         crossinline block: suspend () -> T,
     ): T = mutexFor(taskId).withLock { block() }
 
-    fun mutexFor(taskId: TaskId): Mutex =
+    fun mutexFor(taskId: String): Mutex =
         synchronized(lock) {
             mutexes.getOrPut(taskId) { Mutex() }
         }
@@ -41,7 +40,7 @@ internal class IOSTaskMutexes {
      *
      * Safe to call when no entry exists — it's a no-op.
      */
-    fun forget(taskId: TaskId) {
+    fun forget(taskId: String) {
         synchronized(lock) {
             mutexes.remove(taskId)
         }

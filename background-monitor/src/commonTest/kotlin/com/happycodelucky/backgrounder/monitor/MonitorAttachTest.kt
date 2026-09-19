@@ -1,7 +1,6 @@
 package com.happycodelucky.backgrounder.monitor
 
 import com.happycodelucky.backgrounder.MonitorEvent
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,7 +21,7 @@ import kotlin.time.Instant
 /**
  * Unit coverage for [AttachedMonitor] (and the collector shape
  * `attachMonitor` uses). The real `attachMonitor(...)` operates on a
- * [com.happycodelucky.backgrounder.Backgrounder] instance, which we can't
+ * [com.happycodelucky.backgrounder.BackgroundTaskManager] instance, which we can't
  * cheaply construct without a real platform engine — but its body is
  * trivial: `scope.launch { events().collect { monitor.onEvent(it) } }`,
  * wrapped in `AttachedMonitor(job)`. We exercise the same shape here
@@ -36,7 +35,7 @@ import kotlin.time.Instant
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MonitorAttachTest {
-    private val taskId = TaskId("com.example.task")
+    private val taskId = "com.example.task"
 
     private fun event(now: Instant = Instant.fromEpochMilliseconds(0)): MonitorEvent =
         MonitorEvent.Scheduled(

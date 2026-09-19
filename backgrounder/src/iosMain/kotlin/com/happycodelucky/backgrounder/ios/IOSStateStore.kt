@@ -2,7 +2,6 @@ package com.happycodelucky.backgrounder.ios
 
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.NetworkRequirement
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 import com.happycodelucky.backgrounder.WorkResult
 import com.russhwolf.settings.Settings
@@ -23,7 +22,7 @@ internal class IOSStateStore(
     private val log = Logger.withTag("Backgrounder/iOS/StateStore")
 
     fun writeOnSchedule(
-        taskId: TaskId,
+        taskId: String,
         kind: Kind,
         input: WorkInput,
         ephemeral: Boolean,
@@ -49,14 +48,14 @@ internal class IOSStateStore(
         settings.remove(k.lastRunEpochMs)
     }
 
-    fun readKind(taskId: TaskId): Kind? {
+    fun readKind(taskId: String): Kind? {
         val token = settings.getStringOrNull(keys(taskId).kind) ?: return null
         return Kind.entries.firstOrNull { it.token == token }
     }
 
-    fun readActive(taskId: TaskId): Boolean = settings.getBoolean(keys(taskId).active, false)
+    fun readActive(taskId: String): Boolean = settings.getBoolean(keys(taskId).active, false)
 
-    fun readEphemeral(taskId: TaskId): Boolean = settings.getBoolean(keys(taskId).ephemeral, false)
+    fun readEphemeral(taskId: String): Boolean = settings.getBoolean(keys(taskId).ephemeral, false)
 
     /**
      * Read the persisted `networkRequired` constraint for the task.
@@ -67,19 +66,19 @@ internal class IOSStateStore(
      * Either way the safe default is "don't gate", preserving today's
      * "worker fires immediately" behaviour for legacy state.
      */
-    fun readNetworkRequired(taskId: TaskId): NetworkRequirement {
+    fun readNetworkRequired(taskId: String): NetworkRequirement {
         val token = settings.getStringOrNull(keys(taskId).networkRequired) ?: return NetworkRequirement.None
         return NetworkRequirement.entries.firstOrNull { it.name == token } ?: NetworkRequirement.None
     }
 
-    fun readIntervalMs(taskId: TaskId): Long? {
+    fun readIntervalMs(taskId: String): Long? {
         val k = keys(taskId)
         return if (settings.hasKey(k.intervalMs)) settings.getLong(k.intervalMs, 0L) else null
     }
 
-    fun readAttempt(taskId: TaskId): Int = settings.getInt(keys(taskId).attempt, 0)
+    fun readAttempt(taskId: String): Int = settings.getInt(keys(taskId).attempt, 0)
 
-    fun readInput(taskId: TaskId): WorkInput {
+    fun readInput(taskId: String): WorkInput {
         val raw = settings.getStringOrNull(keys(taskId).input) ?: return WorkInput.empty()
         return runCatching { WorkInput.fromJson(raw) }.getOrElse { e ->
             // Don't crash the OS handler — but make corrupted state visible. The
@@ -89,32 +88,32 @@ internal class IOSStateStore(
         }
     }
 
-    fun readNextRunEpochMs(taskId: TaskId): Long? {
+    fun readNextRunEpochMs(taskId: String): Long? {
         val k = keys(taskId)
         return if (settings.hasKey(k.nextRunEpochMs)) settings.getLong(k.nextRunEpochMs, 0L) else null
     }
 
-    fun readLastRunEpochMs(taskId: TaskId): Long? {
+    fun readLastRunEpochMs(taskId: String): Long? {
         val k = keys(taskId)
         return if (settings.hasKey(k.lastRunEpochMs)) settings.getLong(k.lastRunEpochMs, 0L) else null
     }
 
     fun setActive(
-        taskId: TaskId,
+        taskId: String,
         active: Boolean,
     ) {
         settings.putBoolean(keys(taskId).active, active)
     }
 
     fun setAttempt(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
     ) {
         settings.putInt(keys(taskId).attempt, attempt)
     }
 
     fun setNextRunEpochMs(
-        taskId: TaskId,
+        taskId: String,
         epochMs: Long,
     ) {
         settings.putLong(keys(taskId).nextRunEpochMs, epochMs)
@@ -124,7 +123,7 @@ internal class IOSStateStore(
     // resurrection math in BGTaskHandlerRegistration (`lastRunMs + intervalMs`),
     // so it must share a time base with the caller's injected clock (N-011).
     fun recordRun(
-        taskId: TaskId,
+        taskId: String,
         result: WorkResult,
         nowMs: Long,
     ) {
@@ -133,7 +132,7 @@ internal class IOSStateStore(
         settings.putLong(k.lastRunEpochMs, nowMs)
     }
 
-    fun clear(taskId: TaskId) {
+    fun clear(taskId: String) {
         val k = keys(taskId)
         listOf(
             k.schemaVersion,
@@ -152,19 +151,17 @@ internal class IOSStateStore(
 
     /**
      * Every task id with an entry — derived by scanning the schema_version key
-     * suffix. Returned in deterministic ascending order by [TaskId.value] so
+     * suffix. Returned in deterministic ascending order by task id so
      * [scheduled] snapshots are stable across calls (the underlying
      * `settings.keys` iteration order is platform-defined).
      */
-    fun knownTaskIds(): Set<TaskId> {
+    fun knownTaskIds(): Set<String> {
         val all = settings.keys
         return all
             .asSequence()
             .filter { it.startsWith(PREFIX) && it.endsWith(SCHEMA_VERSION_SUFFIX) }
-            .mapNotNull { key ->
-                val raw = key.removePrefix(PREFIX).removeSuffix(SCHEMA_VERSION_SUFFIX)
-                runCatching { TaskId(raw) }.getOrNull()
-            }.sortedBy { it.value }
+            .map { key -> key.removePrefix(PREFIX).removeSuffix(SCHEMA_VERSION_SUFFIX) }
+            .sorted()
             .toCollection(LinkedHashSet())
     }
 
@@ -182,8 +179,8 @@ internal class IOSStateStore(
         val networkRequired: String,
     )
 
-    private fun keys(taskId: TaskId): Keys {
-        val base = "$PREFIX${taskId.value}."
+    private fun keys(taskId: String): Keys {
+        val base = "$PREFIX$taskId."
         return Keys(
             schemaVersion = "${base}schema_version",
             kind = "${base}kind",

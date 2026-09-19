@@ -4,11 +4,11 @@ import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.SharedFlow
 
 /**
- * The internal engine held by [Backgrounder] — it owns the per-platform graph
+ * The internal engine held by [BackgroundTaskManager] — it owns the per-platform graph
  * (registry + scheduler + instant runner), the started-state flag, the
  * [MonitorEventEmitter] shared between every emit-site in the library, and
  * the platform-specific `start` / `shutdown` lambdas the public
- * `Backgrounder.start()` and `.shutdown()` calls dispatch to.
+ * `BackgroundTaskManager.start()` and `.shutdown()` calls dispatch to.
  *
  * Constructed by per-platform builders (`AndroidBackgrounderBuilder`,
  * `IOSBackgrounderBuilder`, `MacOSBackgrounderBuilder`) inside `androidMain` /
@@ -33,13 +33,13 @@ internal class BackgrounderEngine(
     private val onStart: () -> Unit,
     private val onShutdown: () -> Unit,
 ) {
-    /** Read-only event stream — surfaced as `Backgrounder.events()`. */
+    /** Read-only event stream — surfaced as `BackgroundTaskManager.events()`. */
     val events: SharedFlow<MonitorEvent> get() = emitter.events
 
     private val started = atomic(false)
 
     /**
-     * Whether [start] has been called. Read by [Backgrounder.runNow] to gate
+     * Whether [start] has been called. Read by [BackgroundTaskManager.runNow] to gate
      * dispatch — instant runs require the registry to be sealed before they
      * can rely on stable platform handlers being installed.
      */

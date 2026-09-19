@@ -31,7 +31,7 @@ import kotlin.time.Instant
  *     collector and is out of scope for a unit test.
  */
 class MonitorEventEmitterTest {
-    private val taskId = TaskId("com.example.task")
+    private val taskId = "com.example.task"
     private val request: WorkRequest =
         WorkRequest.OneTime(
             taskId = taskId,
@@ -45,29 +45,29 @@ class MonitorEventEmitterTest {
             val listener =
                 object : BackgrounderEventListener {
                     override fun onScheduled(
-                        taskId: TaskId,
+                        taskId: String,
                         request: WorkRequest,
                     ) {
-                        captured.add("scheduled:${taskId.value}")
+                        captured.add("scheduled:$taskId")
                     }
 
                     override fun onStarted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                     ) {
-                        captured.add("started:${taskId.value}:$attempt")
+                        captured.add("started:$taskId:$attempt")
                     }
 
                     override fun onCompleted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                         result: WorkResult,
                     ) {
-                        captured.add("completed:${taskId.value}:$attempt:${result::class.simpleName}")
+                        captured.add("completed:$taskId:$attempt:${result::class.simpleName}")
                     }
 
-                    override fun onCancelled(taskId: TaskId) {
-                        captured.add("cancelled:${taskId.value}")
+                    override fun onCancelled(taskId: String) {
+                        captured.add("cancelled:$taskId")
                     }
                 }
             val emitter = MonitorEventEmitter(listener)
@@ -104,28 +104,28 @@ class MonitorEventEmitterTest {
             val listener =
                 object : BackgrounderEventListener {
                     override fun onScheduled(
-                        taskId: TaskId,
+                        taskId: String,
                         request: WorkRequest,
                     ) {
                         touches.add("scheduled")
                     }
 
                     override fun onStarted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                     ) {
                         touches.add("started")
                     }
 
                     override fun onCompleted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                         result: WorkResult,
                     ) {
                         touches.add("completed")
                     }
 
-                    override fun onCancelled(taskId: TaskId) {
+                    override fun onCancelled(taskId: String) {
                         touches.add("cancelled")
                     }
                 }
@@ -215,24 +215,24 @@ class MonitorEventEmitterTest {
             val throwing =
                 object : BackgrounderEventListener {
                     override fun onScheduled(
-                        taskId: TaskId,
+                        taskId: String,
                         request: WorkRequest,
                     ) {
                         error("listener exploded")
                     }
 
                     override fun onStarted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                     ) = Unit
 
                     override fun onCompleted(
-                        taskId: TaskId,
+                        taskId: String,
                         attempt: Int,
                         result: WorkResult,
                     ) = Unit
 
-                    override fun onCancelled(taskId: TaskId) = Unit
+                    override fun onCancelled(taskId: String) = Unit
                 }
             val emitter = MonitorEventEmitter(throwing)
             val now = Instant.fromEpochMilliseconds(0)

@@ -6,15 +6,15 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * A request to schedule background work, identified by a stable [TaskId].
+ * A request to schedule background work, identified by a stable task id.
  *
  * Sealed: v1 supports [OneTime] and [Periodic]. Both share an [ephemeral] flag
- * for the cold-launch sweep — see `Backgrounder.attachTo` /
- * `Backgrounder.registerHandlers`.
+ * for the cold-launch sweep — see `BackgroundTaskManager.attachTo` /
+ * `BackgroundTaskManager.registerHandlers`.
  */
 @Serializable
 public sealed interface WorkRequest {
-    public val taskId: TaskId
+    public val taskId: String
     public val constraints: WorkConstraints
     public val input: WorkInput
 
@@ -30,7 +30,7 @@ public sealed interface WorkRequest {
     /** Run once; survives process death and reboot unless [ephemeral]. */
     @Serializable
     public data class OneTime(
-        override val taskId: TaskId,
+        override val taskId: String,
         override val constraints: WorkConstraints = WorkConstraints(),
         override val input: WorkInput = WorkInput.empty(),
         override val ephemeral: Boolean = false,
@@ -42,6 +42,7 @@ public sealed interface WorkRequest {
         val executionHint: ExecutionHint = ExecutionHint.Standard,
     ) : WorkRequest {
         init {
+            requireValidTaskId(taskId)
             require(initialDelay >= Duration.ZERO) { "initialDelay must be >= 0" }
         }
     }
@@ -53,7 +54,7 @@ public sealed interface WorkRequest {
      */
     @Serializable
     public data class Periodic(
-        override val taskId: TaskId,
+        override val taskId: String,
         override val constraints: WorkConstraints = WorkConstraints(),
         override val input: WorkInput = WorkInput.empty(),
         override val ephemeral: Boolean = false,
@@ -68,6 +69,7 @@ public sealed interface WorkRequest {
         val flexWindow: Duration? = null,
     ) : WorkRequest {
         init {
+            requireValidTaskId(taskId)
             require(interval >= MIN_RECOMMENDED_INTERVAL) {
                 "interval must be >= $MIN_RECOMMENDED_INTERVAL (Android floor); was $interval"
             }

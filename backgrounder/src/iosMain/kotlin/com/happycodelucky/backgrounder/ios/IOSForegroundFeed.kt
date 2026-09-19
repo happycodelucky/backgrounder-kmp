@@ -58,7 +58,7 @@ import kotlin.time.toDuration
  * a long user session would silently slip past its cycle until the user
  * backgrounds the app.
  *
- * The two feeds coalesce by `TaskId` through the dispatcher's mutex-then-
+ * The two feeds coalesce by task id through the dispatcher's mutex-then-
  * advance contract: if the foreground loop and a background tick race for
  * the same due task, only one cycle's worker runs.
  *

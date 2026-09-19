@@ -9,7 +9,6 @@ import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PlatformCapabilities
 import com.happycodelucky.backgrounder.ReachabilityGate
 import com.happycodelucky.backgrounder.SkipReason
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
@@ -29,13 +28,13 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Drives a per-`TaskId` [BGTask] handler closure from the OS — the
+ * Drives a per-task id [BGTask] handler closure from the OS — the
  * **one-shot** dispatch path.
  *
  * Post step-6 cut-over, periodics no longer flow through this bridge —
  * they're driven by [IOSPeriodicDispatcher] via the
  * [IOSForegroundFeed] / [IOSBackgroundFeed] pair, which use a single
- * library-owned tick identifier instead of per-`TaskId` registrations.
+ * library-owned tick identifier instead of per-task id registrations.
  * This bridge handles only [WorkRequest.OneTime] dispatches; the per-id
  * launch handler registration in [BGTaskHandlerRegistration.registerOne]
  * is conservatively wired for every registered factory id, but periodics
@@ -69,7 +68,7 @@ internal class IOSCoroutineBridge(
     private val mutexes: IOSTaskMutexes,
     private val emitter: MonitorEventEmitter,
     private val gate: ReachabilityGate,
-    private val applyResult: suspend (BGTask, TaskId, Int, WorkResult, CompletionGuard) -> Unit,
+    private val applyResult: suspend (BGTask, String, Int, WorkResult, CompletionGuard) -> Unit,
 ) {
     private val log = Logger.withTag("Backgrounder/iOS")
 
@@ -80,7 +79,7 @@ internal class IOSCoroutineBridge(
 
     fun handle(
         task: BGTask,
-        taskId: TaskId,
+        taskId: String,
     ) {
         val tagged = log.withTag("Backgrounder/iOS/$taskId")
         // Snapshot attempt/input/networkRequired synchronously (off the main queue)
@@ -290,7 +289,7 @@ internal class IOSCoroutineBridge(
      * still gets exactly one `setTaskCompletedWithSuccess(false)` call.
      */
     fun shutdown() {
-        log.i { "shutdown: cancelling Backgrounder.iOS scope" }
+        log.i { "shutdown: cancelling BackgroundTaskManager.iOS scope" }
         scope.cancel(CancellationException("IOSCoroutineBridge.shutdown"))
     }
 

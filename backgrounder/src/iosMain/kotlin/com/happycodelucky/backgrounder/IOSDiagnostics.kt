@@ -11,11 +11,11 @@ import platform.Foundation.NSBundle
  * iOS `actual` for [platformDiagnostics].
  *
  * Two checks today:
- *  1. Every registered [TaskId] must appear in the main bundle's
+ *  1. Every registered task id must appear in the main bundle's
  *     `BGTaskSchedulerPermittedIdentifiers` `Info.plist` array. iOS will
  *     refuse to install the OS handler for any id missing from that array,
  *     and scheduled work for it will silently never fire.
- *  2. The [WorkerRegistry] must be sealed (i.e. [Backgrounder.start] called).
+ *  2. The [WorkerRegistry] must be sealed (i.e. [BackgroundTaskManager.start] called).
  *
  * **Not currently checked.** `UIApplication.backgroundRefreshStatus` would
  * tell us whether the user has disabled Background App Refresh — but that
@@ -36,7 +36,7 @@ internal actual fun platformDiagnostics(
 
     val permitted = readPermittedIdentifiers()
     registry.registeredIds().forEach { id ->
-        if (id.value !in permitted) {
+        if (id !in permitted) {
             findings.add(PlatformDiagnostic.MissingInfoPlistEntry(taskId = id))
         }
     }

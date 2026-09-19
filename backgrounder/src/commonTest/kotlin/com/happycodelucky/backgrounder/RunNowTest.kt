@@ -15,22 +15,22 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
- * Common-side tests for `Backgrounder.runNow` and `Backgrounder.cancel`.
+ * Common-side tests for `BackgroundTaskManager.runNow` and `BackgroundTaskManager.cancel`.
  *
  * Uses a hand-built [BackgrounderEngine] with a [FakeScheduler] and a
- * [FakeInstantRunner] — exercises the pure [Backgrounder] glue (start gate,
+ * [FakeInstantRunner] — exercises the pure [BackgroundTaskManager] glue (start gate,
  * pre-emption forwarding, cancel merge logic) without any platform plumbing.
  */
 class RunNowTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.runNow")
-    private val otherId = TaskId("com.happycodelucky.backgrounder.test.other")
+    private val taskId = "com.happycodelucky.backgrounder.test.runNow"
+    private val otherId = "com.happycodelucky.backgrounder.test.other"
 
-    private fun build(): Triple<Backgrounder, FakeScheduler, FakeInstantRunner> {
+    private fun build(): Triple<BackgroundTaskManager, FakeScheduler, FakeInstantRunner> {
         val ephemeral = EphemeralRegistry(MapSettings())
         val scheduler = FakeScheduler(ephemeral)
         val runner = FakeInstantRunner()
         val backgrounder =
-            Backgrounder(
+            BackgroundTaskManager(
                 BackgrounderEngine(
                     registry = WorkerRegistry(),
                     scheduler = scheduler,
@@ -136,7 +136,7 @@ class RunNowTest {
             val outcome = backgrounder.cancel(taskId)
             // FakeScheduler has no scheduled entry → NoSuchTask. The runner
             // has an in-flight entry → cancelInFlight returns true. The
-            // unified Backgrounder.cancel must upgrade to Cancelled(0).
+            // unified BackgroundTaskManager.cancel must upgrade to Cancelled(0).
             assertEquals(CancelOutcome.Cancelled(pendingCleared = 0), outcome)
             assertEquals(1, runner.cancelHits)
 

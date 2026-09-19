@@ -2,7 +2,6 @@ package com.happycodelucky.backgrounder.android
 
 import androidx.work.Data
 import com.happycodelucky.backgrounder.BackoffPolicy
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 import com.happycodelucky.backgrounder.WorkValue
 import kotlin.test.Test
@@ -16,7 +15,7 @@ import kotlin.test.assertTrue
  * outside the Android framework).
  */
 class AndroidWorkInputMapperTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.sync")
+    private val taskId = "com.happycodelucky.backgrounder.test.sync"
 
     @Test
     fun roundTripPreservesEverything() {

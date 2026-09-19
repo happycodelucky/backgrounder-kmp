@@ -70,7 +70,7 @@ Everything else we author — classes, files, top-level functions, top-level `va
 
 **Concurrency:**
 
-- `kotlinx.coroutines` only. Every `CoroutineScope` has a clear owner with a defined cancellation lifecycle. The library's per-platform schedulers and the iOS coroutine bridge each own a `SupervisorJob`-rooted scope; `Backgrounder.shutdown()` is the documented cancellation handle. There are no top-level scopes.
+- `kotlinx.coroutines` only. Every `CoroutineScope` has a clear owner with a defined cancellation lifecycle. The library's per-platform schedulers and the iOS coroutine bridge each own a `SupervisorJob`-rooted scope; `BackgroundTaskManager.shutdown()` is the documented cancellation handle. There are no top-level scopes.
 - No `GlobalScope`. Ever.
 - `Flow`/`StateFlow`/`SharedFlow` over callbacks and `LiveData`.
 - For shared mutable state guarded **across `suspend` boundaries**, use `kotlinx.coroutines.sync.Mutex` or actor-style coroutines.

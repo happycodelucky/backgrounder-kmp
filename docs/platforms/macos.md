@@ -3,22 +3,23 @@
 ```swift
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // 1. Construct.
-    let backgrounder = Backgrounder.companion.create()
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 2. Register every worker factory.
-        backgrounder.register(taskId: SyncWorker.companion.ID) {
+        // BackgroundTaskManager.shared builds itself on first access. Call
+        // BackgroundTaskManager.companion.create(eventListener:) before this line only
+        // if you want an event listener.
+
+        // 1. Register every worker factory.
+        BackgroundTaskManager.shared.register(taskId: SyncWorker.companion.ID) {
             SyncWorker(repo: AppGraph.shared.repository)
         }
 
-        // 3. Start — sweeps ephemeral state and seals the registry.
-        backgrounder.start()
+        // 2. Start — sweeps ephemeral state and seals the registry.
+        BackgroundTaskManager.shared.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         // Cancel the scheduler's coroutine scope cleanly.
-        backgrounder.shutdown()
+        BackgroundTaskManager.shared.shutdown()
     }
 }
 ```
@@ -52,4 +53,4 @@ macOS doesn't need the iOS periodic-emulation state machine. `NSBackgroundActivi
 
 ## Shutdown
 
-`backgrounder.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope. Call from `applicationWillTerminate` to tear down cleanly. Without it, in-flight workers continue until the OS reclaims the process — for a foreground app being explicitly quit, that's a few extra seconds of work that never matters; for a long-lived agent it can leave file handles open. Always pair with `applicationWillTerminate`.
+`BackgroundTaskManager.shared.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope. Call from `applicationWillTerminate` to tear down cleanly. Without it, in-flight workers continue until the OS reclaims the process — for a foreground app being explicitly quit, that's a few extra seconds of work that never matters; for a long-lived agent it can leave file handles open. Always pair with `applicationWillTerminate`.

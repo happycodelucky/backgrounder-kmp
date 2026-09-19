@@ -21,7 +21,6 @@ import com.happycodelucky.backgrounder.ScheduledTask
 import com.happycodelucky.backgrounder.Scheduler
 import com.happycodelucky.backgrounder.SchedulerGuarantees
 import com.happycodelucky.backgrounder.SkipReason
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
@@ -75,15 +74,15 @@ internal class NSBackgroundActivityBackedScheduler(
      * CLAUDE.md §3 and Scheduler KDoc).
      */
     private val lock = SynchronizedObject()
-    private val activities: MutableMap<TaskId, NSBackgroundActivityScheduler> = mutableMapOf()
-    private val attempts: MutableMap<TaskId, Int> = mutableMapOf()
+    private val activities: MutableMap<String, NSBackgroundActivityScheduler> = mutableMapOf()
+    private val attempts: MutableMap<String, Int> = mutableMapOf()
 
     /**
      * Track each scheduled request's [ScheduledTask.Kind] so [scheduled] can
      * report it accurately (NSBackgroundActivityScheduler exposes `repeats` but
      * not via a public Kotlin/Native API — easier to track ourselves).
      */
-    private val kinds: MutableMap<TaskId, ScheduledTask.Kind> = mutableMapOf()
+    private val kinds: MutableMap<String, ScheduledTask.Kind> = mutableMapOf()
 
     override fun schedule(
         request: WorkRequest,
@@ -120,7 +119,7 @@ internal class NSBackgroundActivityBackedScheduler(
                 replaced = existing != null
 
                 val fresh =
-                    NSBackgroundActivityScheduler(request.taskId.value).apply {
+                    NSBackgroundActivityScheduler(request.taskId).apply {
                         qualityOfService = NSQualityOfServiceUtility
                         when (request) {
                             is WorkRequest.OneTime -> {
@@ -402,7 +401,7 @@ internal class NSBackgroundActivityBackedScheduler(
                 // is documented as safe from any thread.
                 activities.remove(request.taskId)?.invalidate()
                 val fresh =
-                    NSBackgroundActivityScheduler(request.taskId.value).apply {
+                    NSBackgroundActivityScheduler(request.taskId).apply {
                         qualityOfService = NSQualityOfServiceUtility
                         repeats = false
                         interval = delaySeconds
@@ -420,7 +419,7 @@ internal class NSBackgroundActivityBackedScheduler(
         return NSBackgroundActivityResultFinished
     }
 
-    override fun cancel(taskId: TaskId): CancelOutcome {
+    override fun cancel(taskId: String): CancelOutcome {
         val cancelled =
             synchronized(lock) {
                 val activity = activities.remove(taskId) ?: return@synchronized false
@@ -444,7 +443,7 @@ internal class NSBackgroundActivityBackedScheduler(
     override fun cancelAll(): CancelOutcome {
         val ids =
             synchronized(lock) {
-                if (activities.isEmpty()) return@synchronized emptyList<TaskId>()
+                if (activities.isEmpty()) return@synchronized emptyList<String>()
                 val snap = activities.keys.toList()
                 activities.values.forEach { it.invalidate() }
                 activities.clear()

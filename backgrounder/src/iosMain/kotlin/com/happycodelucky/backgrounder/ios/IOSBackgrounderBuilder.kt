@@ -3,21 +3,23 @@
 
 package com.happycodelucky.backgrounder.ios
 
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.BackgrounderEngine
 import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
+import com.happycodelucky.backgrounder.SharedBackgroundTaskManager
 import com.happycodelucky.backgrounder.WorkerRegistry
+import com.happycodelucky.backgrounder.requireValidTaskId
 import com.happycodelucky.reachable.Reachability
 import com.russhwolf.settings.NSUserDefaultsSettings
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSUserDefaults
 
 /**
- * Constructor-injection wiring for the iOS [Backgrounder] graph.
+ * Constructor-injection wiring for the iOS [BackgroundTaskManager] graph.
  *
  * Replaces the Koin module wiring in `backgrounderIOSModule` (plan §"DI-free
  * initialization" §2.1). Each platform piece is constructed in dependency
@@ -34,7 +36,8 @@ internal object IOSBackgrounderBuilder {
     fun build(
         tickIdentifier: String,
         eventListener: BackgrounderEventListener,
-    ): Backgrounder {
+    ): BackgroundTaskManager {
+        requireValidTaskId(tickIdentifier, what = "tickIdentifier")
         val settings = NSUserDefaultsSettings(NSUserDefaults(suiteName = "com.happycodelucky.backgrounder.shared"))
         val ephemeral = EphemeralRegistry(settings)
         val state = IOSStateStore(settings)
@@ -136,45 +139,48 @@ internal object IOSBackgrounderBuilder {
         val pendingInstantCalls = PendingInstantCalls()
         val instantRunner = UIBackgroundTaskInstantRunner(pendingInstantCalls)
 
-        return Backgrounder(
-            BackgrounderEngine(
-                registry = registry,
-                scheduler = scheduler,
-                instantRunner = instantRunner,
-                emitter = emitter,
-                onStart = {
-                    // Sweep first (clears ephemeral state before any handler fires),
-                    // then registration (registers OS handlers, validates plist,
-                    // queues the tick request, resurrects active periodics).
-                    // `BackgrounderEngine.start()` already sealed the registry before
-                    // invoking this lambda.
-                    //
-                    // Foreground feed starts last so its UIApplication-state probe
-                    // observes the post-launch state (active vs background); a
-                    // launch sequence that synchronously backgrounds the app
-                    // before start() returns is rare but not impossible.
-                    sweep.run()
-                    registration.run()
-                    // After registration: clear one-shots whose run died with a
-                    // previous process (D-020/D-022). Snapshot-first inside, so
-                    // schedules issued after start() can't be swept by the
-                    // async OS callback.
-                    reconciliation.launch()
-                    foregroundFeed.start()
-                },
-                onShutdown = {
-                    // Reverse order: tear down the foreground feed first (removes
-                    // UIApplication observers), then the background feed (cancels
-                    // the per-tick scope), then the bridge (cancels the per-task
-                    // scope used for one-shots), then the instant runner (ends
-                    // any outstanding UIApplication.beginBackgroundTask runways
-                    // and completes pending deferreds with CancellationException).
-                    foregroundFeed.shutdown()
-                    backgroundFeed.shutdown()
-                    bridge.shutdown()
-                    instantRunner.shutdown()
-                },
-            ),
-        )
+        val backgrounder =
+            BackgroundTaskManager(
+                BackgrounderEngine(
+                    registry = registry,
+                    scheduler = scheduler,
+                    instantRunner = instantRunner,
+                    emitter = emitter,
+                    onStart = {
+                        // Sweep first (clears ephemeral state before any handler fires),
+                        // then registration (registers OS handlers, validates plist,
+                        // queues the tick request, resurrects active periodics).
+                        // `BackgrounderEngine.start()` already sealed the registry before
+                        // invoking this lambda.
+                        //
+                        // Foreground feed starts last so its UIApplication-state probe
+                        // observes the post-launch state (active vs background); a
+                        // launch sequence that synchronously backgrounds the app
+                        // before start() returns is rare but not impossible.
+                        sweep.run()
+                        registration.run()
+                        // After registration: clear one-shots whose run died with a
+                        // previous process (D-020/D-022). Snapshot-first inside, so
+                        // schedules issued after start() can't be swept by the
+                        // async OS callback.
+                        reconciliation.launch()
+                        foregroundFeed.start()
+                    },
+                    onShutdown = {
+                        // Reverse order: tear down the foreground feed first (removes
+                        // UIApplication observers), then the background feed (cancels
+                        // the per-tick scope), then the bridge (cancels the per-task
+                        // scope used for one-shots), then the instant runner (ends
+                        // any outstanding UIApplication.beginBackgroundTask runways
+                        // and completes pending deferreds with CancellationException).
+                        foregroundFeed.shutdown()
+                        backgroundFeed.shutdown()
+                        bridge.shutdown()
+                        instantRunner.shutdown()
+                    },
+                ),
+            )
+        SharedBackgroundTaskManager.install(backgrounder)
+        return backgrounder
     }
 }

@@ -69,6 +69,12 @@ reachable = "0.14.0"
 turbine = "1.2.1"
 kotest = "6.1.11"
 
+# --- Gradle plugin (:backgrounder-gradle-plugin) -------------------------
+# ASM reads the compiled class files for `@BackgroundTaskId` constants. Gradle
+# bundles its own ASM internally but does not expose it to plugins, so we
+# declare it. 9.10.1 is the latest stable as of 2026-09.
+asm = "9.10.1"
+
 # --- Lint ------------------------------------------------------------------
 ktlint = "1.8.0"               # The ktlint tool itself.
 ktlintGradle = "14.2.0"        # The org.jlleitschuh.gradle.ktlint Gradle plugin.
@@ -104,11 +110,13 @@ reachable-testing = { module = "com.happycodelucky.reachable:reachable-testing",
 # --- Testing ----------------------------------------------------------------
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 
 
 [plugins]
 
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }

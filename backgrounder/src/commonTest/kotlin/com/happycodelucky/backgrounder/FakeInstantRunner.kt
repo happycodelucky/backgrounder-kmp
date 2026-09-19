@@ -15,12 +15,12 @@ import kotlinx.coroutines.CompletableDeferred
  * or cancellation, use [runWithDeferred] which exposes the underlying
  * `CompletableDeferred<Any?>` for the test to control.
  *
- * Calls to [cancelInFlight] are recorded so [Backgrounder.cancel] tests can
+ * Calls to [cancelInFlight] are recorded so [BackgroundTaskManager.cancel] tests can
  * assert the unified surface forwards correctly.
  */
 internal class FakeInstantRunner : InstantRunner {
     private val lock = SynchronizedObject()
-    private val inflight: MutableMap<TaskId, CompletableDeferred<Any?>> = mutableMapOf()
+    private val inflight: MutableMap<String, CompletableDeferred<Any?>> = mutableMapOf()
 
     /** Number of `run(...)` calls observed. */
     val runCount: Int get() = runCounter.value
@@ -36,7 +36,7 @@ internal class FakeInstantRunner : InstantRunner {
     private val cancelMissCounter = atomic(0)
 
     override suspend fun <R> run(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R {
         runCounter.incrementAndGet()
@@ -61,7 +61,7 @@ internal class FakeInstantRunner : InstantRunner {
         }
     }
 
-    override fun cancelInFlight(taskId: TaskId): Boolean {
+    override fun cancelInFlight(taskId: String): Boolean {
         val deferred =
             synchronized(lock) {
                 inflight.remove(taskId)

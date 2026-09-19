@@ -47,7 +47,7 @@ val attached: AttachedMonitor = backgrounder.attachMonitor(viewModelScope, Loggi
 attached.detach()
 ```
 
-Multiple monitors can attach to one Backgrounder — each runs its own collector coroutine. The unit of subscription is the `Monitor` instance; the unit of cancellation is the returned `AttachedMonitor`.
+Multiple monitors can attach to one `BackgroundTaskManager` — each runs its own collector coroutine. The unit of subscription is the `Monitor` instance; the unit of cancellation is the returned `AttachedMonitor`.
 
 ## Snapshot polling alongside events
 
@@ -68,4 +68,4 @@ Don't poll more often than ~250 ms — Android's `WorkInfo` query is IPC-bound a
 - **Slow `Monitor.onEvent`.** The collector coroutine pauses while `onEvent` runs. If you do heavy work (HTTP, database) inside it, the core's 64-slot buffer can overflow under burst load and the oldest unread events get dropped. Forward to a `Channel` you drain elsewhere if your work is slow.
 - **Throwing `Monitor.onEvent`.** Uncaught exceptions propagate through the collector's job and may terminate the subscription. Catch and log inside `onEvent` if your work can fail.
 - **Late attachers see nothing historical.** The flow doesn't replay. If you need history (e.g. for a debug screen that opens after the fact), persist events on your side as they arrive.
-- **`Cancelled` after `Backgrounder.shutdown()`.** Shutdown does not currently fan-out a synthetic `Cancelled` for each active task — collectors observing the flow see the scope cancel and the flow stop emitting. If you need a "library is shutting down" signal, watch for the scope's cancellation in your own collector.
+- **`Cancelled` after `BackgroundTaskManager.shutdown()`.** Shutdown does not currently fan-out a synthetic `Cancelled` for each active task — collectors observing the flow see the scope cancel and the flow stop emitting. If you need a "library is shutting down" signal, watch for the scope's cancellation in your own collector.

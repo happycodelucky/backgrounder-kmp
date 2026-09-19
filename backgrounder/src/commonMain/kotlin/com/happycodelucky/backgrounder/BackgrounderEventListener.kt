@@ -13,14 +13,14 @@ import kotlin.native.ObjCName
  * Implementations **must not block or throw** — they're called inline on the
  * dispatcher running the worker.
  *
- * **Prefer [Backgrounder.events] for new code.** The
+ * **Prefer [BackgroundTaskManager.events] for new code.** The
  * `SharedFlow<MonitorEvent>` exposed there carries the same four events plus
  * the richer events the listener does not cover (deferral, skip, attempt
  * failure cause, retry scheduling, library error, schedule replacement). Both
  * channels are fed by a single internal emit point (see
  * [MonitorEventEmitter]) so the listener and the flow stay in lockstep.
  *
- * Pass an implementation to the per-platform `Backgrounder.create(...)`
+ * Pass an implementation to the per-platform `BackgroundTaskManager.create(...)`
  * factory; the default is [Noop].
  *
  * `@OptIn(ExperimentalObjCName::class)`: Swift-rename annotation so callbacks
@@ -31,7 +31,7 @@ public interface BackgrounderEventListener {
     /** Called immediately after [Scheduler.schedule] accepts a [WorkRequest]. */
     @ObjCName(swiftName = "onScheduled")
     public fun onScheduled(
-        taskId: TaskId,
+        taskId: String,
         request: WorkRequest,
     )
 
@@ -42,7 +42,7 @@ public interface BackgrounderEventListener {
      */
     @ObjCName(swiftName = "onStarted")
     public fun onStarted(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
     )
 
@@ -54,36 +54,36 @@ public interface BackgrounderEventListener {
      */
     @ObjCName(swiftName = "onCompleted")
     public fun onCompleted(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
         result: WorkResult,
     )
 
     /** Called when [Scheduler.cancel] or [Scheduler.cancelAll] removes this task. */
     @ObjCName(swiftName = "onCancelled")
-    public fun onCancelled(taskId: TaskId)
+    public fun onCancelled(taskId: String)
 
     public companion object {
         /** No-op listener — used as the default when the user binds nothing. */
         public val Noop: BackgrounderEventListener =
             object : BackgrounderEventListener {
                 override fun onScheduled(
-                    taskId: TaskId,
+                    taskId: String,
                     request: WorkRequest,
                 ) = Unit
 
                 override fun onStarted(
-                    taskId: TaskId,
+                    taskId: String,
                     attempt: Int,
                 ) = Unit
 
                 override fun onCompleted(
-                    taskId: TaskId,
+                    taskId: String,
                     attempt: Int,
                     result: WorkResult,
                 ) = Unit
 
-                override fun onCancelled(taskId: TaskId) = Unit
+                override fun onCancelled(taskId: String) = Unit
             }
     }
 }

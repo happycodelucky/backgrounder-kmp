@@ -1,6 +1,5 @@
 package com.happycodelucky.backgrounder.android
 
-import com.happycodelucky.backgrounder.TaskId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,8 +14,8 @@ import kotlin.test.assertTrue
  * registered. This tracker is the seam that makes the correct outcome possible.
  */
 class ScheduledIdsTrackerTest {
-    private val a = TaskId("com.happycodelucky.backgrounder.test.a")
-    private val b = TaskId("com.happycodelucky.backgrounder.test.b")
+    private val a = "com.happycodelucky.backgrounder.test.a"
+    private val b = "com.happycodelucky.backgrounder.test.b"
 
     @Test
     fun removeIfPresentReturnsTrueOnlyForTrackedIds() {

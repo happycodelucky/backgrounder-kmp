@@ -20,7 +20,6 @@ import com.happycodelucky.backgrounder.ScheduleOutcome
 import com.happycodelucky.backgrounder.ScheduledTask
 import com.happycodelucky.backgrounder.Scheduler
 import com.happycodelucky.backgrounder.SchedulerGuarantees
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
@@ -113,7 +112,7 @@ internal class WorkManagerScheduler(
                 .applyTags(request.taskId, periodic = false)
 
         val workRequest: AndroidWorkRequest = builder.build()
-        workManager.enqueueUniqueWork(request.taskId.value, policy.toAndroidOneTimePolicy(), workRequest as OneTimeWorkRequest)
+        workManager.enqueueUniqueWork(request.taskId, policy.toAndroidOneTimePolicy(), workRequest as OneTimeWorkRequest)
         return ScheduleOutcome.Scheduled
     }
 
@@ -155,14 +154,14 @@ internal class WorkManagerScheduler(
             .applyTags(request.taskId, periodic = true)
 
         workManager.enqueueUniquePeriodicWork(
-            request.taskId.value,
+            request.taskId,
             policy.toAndroidPeriodicPolicy(),
             builder.build(),
         )
         return ScheduleOutcome.Scheduled
     }
 
-    override fun cancel(taskId: TaskId): CancelOutcome {
+    override fun cancel(taskId: String): CancelOutcome {
         // Best-effort: if this process didn't schedule the id, return NoSuchTask
         // honestly so callers branching on the outcome see the same shape they
         // get on iOS / macOS (review-loop round 1, finding H-CONSENSUS-1).
@@ -170,7 +169,7 @@ internal class WorkManagerScheduler(
         // gets cancelled on WorkManager's side.
         val wasKnown = scheduledIds.removeIfPresent(taskId)
         ephemeral.remove(taskId)
-        workManager.cancelUniqueWork(taskId.value)
+        workManager.cancelUniqueWork(taskId)
         if (wasKnown) {
             emitter.emit(
                 MonitorEvent.Cancelled(
@@ -250,11 +249,11 @@ private fun QuotaPolicy.toAndroid(): OutOfQuotaPolicy =
     }
 
 private fun <B : AndroidWorkRequest.Builder<B, *>> B.applyTags(
-    taskId: TaskId,
+    taskId: String,
     periodic: Boolean,
 ): B {
     addTag(AndroidScheduledTaskMapper.BACKGROUNDER_TAG)
-    addTag("${AndroidScheduledTaskMapper.TASK_ID_TAG_PREFIX}${taskId.value}")
+    addTag("${AndroidScheduledTaskMapper.TASK_ID_TAG_PREFIX}$taskId")
     if (periodic) addTag(AndroidScheduledTaskMapper.KIND_PERIODIC_TAG)
     return this
 }

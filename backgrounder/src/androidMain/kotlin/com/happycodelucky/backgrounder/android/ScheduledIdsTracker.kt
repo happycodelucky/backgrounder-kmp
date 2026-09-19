@@ -1,11 +1,10 @@
 package com.happycodelucky.backgrounder.android
 
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 
 /**
- * Process-local set of [TaskId]s the [WorkManagerScheduler] has scheduled in
+ * Process-local set of task ids the [WorkManagerScheduler] has scheduled in
  * this process. Used to drive the [com.happycodelucky.backgrounder.CancelOutcome] returned
  * by `cancel(id)` / `cancelAll()`: WorkManager's `cancelUniqueWork` is
  * fire-and-forget and gives us no way to tell whether the id had any
@@ -23,11 +22,11 @@ import kotlinx.atomicfu.locks.synchronized
  */
 internal class ScheduledIdsTracker {
     private val lock = SynchronizedObject()
-    private val ids: MutableSet<TaskId> = mutableSetOf()
+    private val ids: MutableSet<String> = mutableSetOf()
     // MUST NOT call suspend functions inside this block.
 
     /** Record that [taskId] was just scheduled in this process. */
-    fun add(taskId: TaskId) {
+    fun add(taskId: String) {
         synchronized(lock) { ids.add(taskId) }
     }
 
@@ -38,14 +37,14 @@ internal class ScheduledIdsTracker {
      * `schedule()` — a snapshot-then-add pair lets two racing callers both
      * miss (or both see) the prior entry.
      */
-    fun addAndWasPresent(taskId: TaskId): Boolean = synchronized(lock) { !ids.add(taskId) }
+    fun addAndWasPresent(taskId: String): Boolean = synchronized(lock) { !ids.add(taskId) }
 
     /**
      * Remove [taskId] if it was tracked. Returns `true` if it was previously
      * tracked (callers map this to `Cancelled(1)`), `false` otherwise (callers
      * map to `NoSuchTask`).
      */
-    fun removeIfPresent(taskId: TaskId): Boolean = synchronized(lock) { ids.remove(taskId) }
+    fun removeIfPresent(taskId: String): Boolean = synchronized(lock) { ids.remove(taskId) }
 
     /** Clear and return the count of ids that were tracked. */
     fun clearAndCount(): Int =
@@ -56,5 +55,5 @@ internal class ScheduledIdsTracker {
         }
 
     /** Snapshot for tests / diagnostics. */
-    fun snapshot(): Set<TaskId> = synchronized(lock) { ids.toSet() }
+    fun snapshot(): Set<String> = synchronized(lock) { ids.toSet() }
 }

@@ -58,6 +58,32 @@ Backgrounder pulls `kotlinx.coroutines`, `kotlinx.serialization`,
 internally and a factory-closure seam for user code, so any DI graph you
 already use plugs in cleanly.
 
+## Gradle plugin (iOS apps)
+
+iOS fires only the background tasks whose identifiers appear in the app's
+`Info.plist` under `BGTaskSchedulerPermittedIdentifiers`, and it fails silently
+when one is missing. The `com.happycodelucky.backgrounder` Gradle plugin keeps
+that array in sync with your code. Apply it to the module that declares your
+workers:
+
+```kotlin
+plugins {
+    id("com.happycodelucky.backgrounder") version "{{ version }}"
+}
+
+backgrounder {
+    iosInfoPlist = file("../iOSApp/App/Info.plist")
+    iosBundleIdentifier = "dev.example.app"   // adds the default tick identifier
+}
+```
+
+Mark every id you may schedule as a `WorkRequest.OneTime` with
+`@BGTaskSchedulerPermittedIdentifier` on its `const val`, then run
+`./gradlew updateBackgrounderInfoPlist` (an Xcode run-script phase or a
+pre-commit hook are the usual homes). Periodic and `runNow` ids need no entry.
+It resolves from Maven Central alongside the library. See
+[Generate the iOS permitted identifiers](recipes/ios-permitted-identifiers.md).
+
 ## Android-only consumer
 
 If your app is Android-only (not a KMP project), depend on the published
@@ -72,7 +98,10 @@ dependencies {
 You'll need to install Backgrounder's `WorkerFactory` via
 `Configuration.Provider` (mandatory; see [Platforms → Android](platforms/android.md)
 for the full launch-sequence snippet) and disable WorkManager's default
-auto-init in your `AndroidManifest.xml`:
+auto-init in your `AndroidManifest.xml`. Remove only WorkManager's `meta-data`
+entry — Backgrounder's own startup initializer, which populates
+`BackgroundTaskManager.shared` before `Application.onCreate`, rides on the same
+provider:
 
 ```xml
 <provider
@@ -96,20 +125,22 @@ section above; KMP resolves the `iosArm64`, `iosSimulatorArm64`, and
 `macosArm64` slices for you. The Swift-facing framework is produced by your
 own project's framework build, not the library's.
 
-Add the tick identifier plus one entry per `WorkRequest.OneTime` task id you
-schedule to your app's `Info.plist`:
+Your app's `Info.plist` must list the tick identifier
+(`<bundle id>.backgrounder-tick` by default) plus one entry per
+`WorkRequest.OneTime` task id you schedule. Let the
+[Gradle plugin](#gradle-plugin-ios-apps) write it, or maintain it by hand:
 
 ```xml
 <key>BGTaskSchedulerPermittedIdentifiers</key>
 <array>
-    <string>dev.example.app.background-tick</string>  <!-- mandatory: matches tickIdentifier -->
-    <string>dev.example.app.sync</string>             <!-- one-shot WorkRequest.OneTime -->
+    <string>dev.example.app.backgrounder-tick</string>  <!-- mandatory: the default tick -->
+    <string>dev.example.app.sync</string>               <!-- one-shot WorkRequest.OneTime -->
 </array>
 ```
 
-The library logs an error during `backgrounder.start()` for any task
-id missing from this list — failing close to the cause rather than at first
-`schedule()`.
+The library logs an error during `BackgroundTaskManager.shared.start()` when
+the tick identifier is missing and a warning for each registered id that is —
+failing close to the cause rather than at first `schedule()`.
 
 ## Apple-side SPM
 
@@ -118,7 +149,7 @@ Pure-Swift apps consume Backgrounder through Swift Package Manager. In Xcode,
 version tag:
 
 ```
-https://github.com/happycodelucky/backgrounder.git
+https://github.com/happycodelucky/backgrounder-kmp.git
 ```
 
 The tagged `Package.swift` hands SPM a prebuilt `Backgrounder.xcframework`
@@ -164,7 +195,7 @@ After the launch sequence in [Getting started](getting-started.md) is in
 place, this snippet should compile and run on every platform:
 
 ```kotlin
-println(backgrounder.guarantees())
+println(BackgroundTaskManager.shared.guarantees())
 ```
 
 Output (truncated, platform-dependent — see [Guarantees](concepts/guarantees.md)):

@@ -1,49 +1,45 @@
 # Android launch sequence
 
-The Android launch sequence is **three steps** — `create`, `register`, `start` — plus one mandatory wiring: tell `WorkManager` to use Backgrounder's `WorkerFactory` via `Configuration.Provider`.
+The Android launch sequence is **two steps** — `register`, then `start` — plus one mandatory wiring: tell `WorkManager` to use Backgrounder's `WorkerFactory` via `Configuration.Provider`. Construction is automatic: the library registers an `androidx.startup` initializer that builds `BackgroundTaskManager.shared` before `Application.onCreate` runs.
 
 ```kotlin
 import androidx.work.Configuration
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.androidWorkerFactory
-import com.happycodelucky.backgrounder.create
+import com.happycodelucky.backgrounder.shared
 
 class MyApp : Application(), Configuration.Provider {
-    lateinit var backgrounder: Backgrounder
-
     override fun onCreate() {
         super.onCreate()
 
-        // 1. Construct. Eagerly sweeps any ephemeral work from prior runs.
-        //    Does NOT trigger WorkManager.getInstance() — that's lazy until
-        //    Configuration.Provider has had a chance to install our factory.
-        backgrounder = Backgrounder.create(application = this)
+        // 1. BackgroundTaskManager.shared already exists: the library's androidx.startup
+        //    initializer built it before onCreate ran. If your manifest removes
+        //    the InitializationProvider entirely, call
+        //    BackgroundTaskManager.configure(application = this) here first.
 
-        // 2. Register every BackgroundWorker factory. The closure is yours —
-        //    resolve dependencies through whatever DI graph your app uses.
-        backgrounder.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
-        backgrounder.register(UploadWorker.ID) {
-            UploadWorker(api = appGraph.api, retryPolicy = appGraph.retryPolicy)
+        // 2. Register every worker factory. The closure is yours — resolve
+        //    dependencies however you like (Koin, Hilt, hand-wired).
+        BackgroundTaskManager.shared.register(SyncWorker.ID) {
+            SyncWorker(repo = appGraph.repository)
         }
 
-        // 3. Start. Seals the registry; flips the ready gate so workers
-        //    enqueued before this point may now dispatch.
-        backgrounder.start()
+        // 3. Start. Sweeps ephemeral work left over from the previous process,
+        //    seals the registry, and flips the ready gate so workers enqueued
+        //    before this point may now dispatch.
+        BackgroundTaskManager.shared.start()
     }
 
     // Tell WorkManager to use Backgrounder's WorkerFactory. Required.
-    // Compose with Hilt's HiltWorkerFactory via DelegatingWorkerFactory if
-    // you also use Hilt — see Concepts → Worker context & DI.
     override val workManagerConfiguration: Configuration get() =
         Configuration.Builder()
-            .setWorkerFactory(backgrounder.androidWorkerFactory())
+            .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
             .build()
 }
 ```
 
 ## AndroidManifest
 
-Disable WorkManager's default auto-init, which is mandatory whenever you implement `Configuration.Provider`:
+Disable WorkManager's default auto-init, which is mandatory whenever you implement `Configuration.Provider`. Remove only WorkManager's `meta-data` entry, not the provider: BackgroundTaskManager's own `BackgrounderInitializer` is registered on the same provider and is what populates `BackgroundTaskManager.shared`. If your app removes the provider altogether, call `BackgroundTaskManager.configure(application = this)` at the top of `onCreate` instead.
 
 ```xml
 <provider
@@ -59,11 +55,11 @@ Disable WorkManager's default auto-init, which is mandatory whenever you impleme
 
 Without this, WorkManager's auto-init content provider runs before `Application.onCreate` and locks the `Configuration` to its defaults — your `workManagerConfiguration` override would never be consulted.
 
-## Construction order matters
+## Construction order
 
-`Configuration.Provider.workManagerConfiguration` is invoked the *first time anyone* calls `WorkManager.getInstance(context)`. The user must have constructed `backgrounder = Backgrounder.create(this)` before that happens — otherwise `androidWorkerFactory()` has nothing to return.
+`Configuration.Provider.workManagerConfiguration` is invoked the *first time anyone* calls `WorkManager.getInstance(context)`, and it reads `BackgroundTaskManager.shared.androidWorkerFactory()`. The startup initializer builds `BackgroundTaskManager.shared` while content providers are created, which is before `Application.onCreate`, so the instance always exists by then. Construction itself never touches `WorkManager`; the ephemeral sweep that does runs inside `start()`.
 
-In practice this means: **construct `backgrounder` before `super.onCreate()` returns**. The snippet above puts it right after `super.onCreate()`, which is well within the window. Hilt has the same constraint for the same reason.
+If you call `BackgroundTaskManager.configure(application = this)` yourself (see below), do it at the top of `onCreate`, before anything can trigger `WorkManager.getInstance`.
 
 ## What runs where
 
@@ -79,4 +75,4 @@ Android is the platform where `WorkConstraints` carries real OS weight. `network
 
 ## Multi-process apps
 
-`Backgrounder.create(application)` must be called in `Application.onCreate` (which runs in *every* process — main and `:remote`), not from an `androidx.startup` initializer (which doesn't run in non-main processes). The factory closure pattern works the same in every process — each process holds its own `Backgrounder` instance, but they share the same `WorkManager` database, so scheduled work is consistent across processes.
+The `androidx.startup` provider runs only in the main process, so in a `:remote` process `BackgroundTaskManager.shared` is not populated automatically. Call `BackgroundTaskManager.configure(application = this)` at the top of `Application.onCreate`, which runs in *every* process. The call is idempotent with the initializer: when an instance already exists and you pass no listener or `WorkManager`, it returns that instance. Each process holds its own `BackgroundTaskManager`, but they share the same `WorkManager` database, so scheduled work is consistent across processes.

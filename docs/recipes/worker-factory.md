@@ -1,6 +1,6 @@
 # Register many workers with a factory
 
-`BackgroundWorkerFactory` is the bulk alternative to per-id `register(taskId) { worker }`. One factory owns a *set* of `TaskId`s and resolves the concrete `BackgroundWorker` lazily at dispatch time. Useful when an app module owns several related workers and you want to register them as a unit.
+`BackgroundWorkerFactory` is the bulk alternative to per-id `register(taskId) { worker }`. One factory owns a *set* of task ids and resolves the concrete `BackgroundWorker` lazily at dispatch time. Useful when an app module owns several related workers and you want to register them as a unit.
 
 ```kotlin
 import com.happycodelucky.backgrounder.*
@@ -12,7 +12,7 @@ class SyncModuleWorkerFactory(private val graph: AppGraph) : BackgroundWorkerFac
         ReconcileWorker.ID,
     )
 
-    override fun create(taskId: TaskId): BackgroundWorker? = when (taskId) {
+    override fun create(taskId: String): BackgroundWorker? = when (taskId) {
         SyncWorker.ID      -> SyncWorker(repo = graph.repository)
         UploadWorker.ID    -> UploadWorker(api = graph.api, retryPolicy = graph.retryPolicy)
         ReconcileWorker.ID -> ReconcileWorker(repo = graph.repository, api = graph.api)
@@ -32,13 +32,13 @@ The library invokes `create` afresh on every dispatch — workers are never cach
 - Workers share the same DI graph — close over it once in the factory's constructor.
 - You want worker construction to live next to the worker classes, not at the app's launch site.
 
-For one or two workers, per-id `register(taskId) { worker }` is shorter and clearer. The two registration shapes coexist freely — mix them in the same `Backgrounder`.
+For one or two workers, per-id `register(taskId) { worker }` is shorter and clearer. The two registration shapes coexist freely — mix them in the same `BackgroundTaskManager`.
 
 ## What can go wrong
 
 - **`taskIds` and `create` drift apart.** If `create` returns `null` for an id that *is* in `taskIds`, the registry throws `WorkerRegistry.FactoryDeclinedException` — that's a programming error, not a fall-through. Keep the `when` exhaustive over `taskIds`.
 - **An id is missing from `taskIds`.** The library registers OS handlers (Android WorkManager / iOS `BGTaskScheduler`) for every id in `taskIds` at `start()`. An id `create` *can* build but that isn't in `taskIds` will never get an OS handler — its scheduled work silently never fires. Keep the set complete.
-- **Overlapping id sets.** Registering two factories that both claim the same `TaskId`, or a factory whose `taskIds` collides with an existing per-id `register`, throws `IllegalArgumentException` at registration. Resolution must be unambiguous.
+- **Overlapping id sets.** Registering two factories that both claim the same task id, or a factory whose `taskIds` collides with an existing per-id `register`, throws `IllegalArgumentException` at registration. Resolution must be unambiguous.
 - **iOS `Info.plist` requirement.** Every id in any factory's `taskIds` must also appear in `BGTaskSchedulerPermittedIdentifiers`. Same rule as per-id `register` — see [Schedule a one-shot](one-shot.md).
 
 ## Resolution order

@@ -4,13 +4,12 @@ import android.content.Context
 import androidx.work.WorkManager
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.EphemeralRegistry
-import com.happycodelucky.backgrounder.TaskId
 import java.util.concurrent.TimeUnit
 
 /**
  * Cancels every pending ephemeral request before any worker can dispatch.
  *
- * Called from `Backgrounder.attachTo(application)` — which runs as the
+ * Called from `BackgroundTaskManager.attachTo(application)` — which runs as the
  * **first line** of `Application.onCreate`, *before* `startKoin` and *before*
  * the user's app graph is available.
  *
@@ -25,20 +24,26 @@ internal class AndroidEphemeralSweep(
 ) {
     private val log = Logger.withTag("Backgrounder/EphemeralSweep")
 
+    /**
+     * Taken at construction, before the app can schedule anything, so a fresh
+     * ephemeral request enqueued between construction and start() is never
+     * mistaken for a leftover from the previous process.
+     */
+    private val ids: Set<String> = ephemeral.snapshot()
+
     fun run() {
-        val ids: Set<TaskId> = ephemeral.snapshot()
         if (ids.isEmpty()) {
             log.d { "no ephemeral entries to sweep" }
             return
         }
-        log.i { "sweeping ${ids.size} ephemeral request(s) before app init" }
+        log.i { "sweeping ${ids.size} ephemeral request(s) left over from the previous process" }
         val workManager = WorkManager.getInstance(context)
 
         // Fire all cancellations up-front (they're enqueued in parallel by
         // WorkManager), then wait against a single shared budget. This caps
         // the cold-start cost at SWEEP_DEADLINE_MS no matter how many ids are
         // pending — vs. SWEEP_DEADLINE_MS × N if we awaited each one.
-        val operations = ids.map { id -> id to workManager.cancelUniqueWork(id.value) }
+        val operations = ids.map { id -> id to workManager.cancelUniqueWork(id) }
         val deadlineNs = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(SWEEP_DEADLINE_MS)
         operations.forEach { (id, op) ->
             val remainingMs = TimeUnit.NANOSECONDS.toMillis((deadlineNs - System.nanoTime()).coerceAtLeast(0L))
@@ -57,7 +62,7 @@ internal class AndroidEphemeralSweep(
                 log.e(t) { "failed to cancel ephemeral $id within remaining ${remainingMs}ms" }
             }
         }
-        ephemeral.clear()
+        ids.forEach(ephemeral::remove)
     }
 
     internal companion object {

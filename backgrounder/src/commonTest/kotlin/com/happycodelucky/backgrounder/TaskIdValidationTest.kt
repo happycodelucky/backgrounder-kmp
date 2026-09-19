@@ -1,52 +1,60 @@
 package com.happycodelucky.backgrounder
 
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.time.Duration.Companion.minutes
 
+/**
+ * Task ids are free-form strings; the only rule is non-blank with no
+ * surrounding whitespace, enforced at every public entry point.
+ */
 class TaskIdValidationTest {
     @Test
-    fun acceptsReverseDns() {
-        assertEquals("com.example.sync", TaskId("com.example.sync").value)
-        assertEquals("com.happycodelucky.backgrounder.example.sync", TaskId("com.happycodelucky.backgrounder.example.sync").value)
-        assertEquals("a.b", TaskId("a.b").value) // minimum: at least one dot.
-        assertEquals(
-            "x.y.z-with_some.123",
-            TaskId("x.y.z-with_some.123").value,
-        )
+    fun acceptsAnyNonBlankShape() {
+        // Reverse-DNS is the convention, but nothing enforces it.
+        listOf("com.example.sync", "sync", "Sync Worker #1", "x.y.z-with_some.123", "a/b:c").forEach { id ->
+            requireValidTaskId(id)
+            WorkRequest.OneTime(taskId = id)
+            WorkRequest.Periodic(taskId = id, interval = 15.minutes)
+        }
     }
 
     @Test
-    fun rejectsEmpty() {
-        assertFailsWith<IllegalArgumentException> { TaskId("") }
+    fun rejectsBlank() {
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId("") }
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId("   ") }
     }
 
     @Test
-    fun rejectsTooLong() {
-        val tooLong = "a." + "x".repeat(TaskId.MAX_LENGTH) // strictly > MAX_LENGTH
-        assertFailsWith<IllegalArgumentException> { TaskId(tooLong) }
+    fun rejectsSurroundingWhitespace() {
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId(" com.example.sync") }
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId("com.example.sync\n") }
     }
 
     @Test
-    fun rejectsMissingDot() {
-        assertFailsWith<IllegalArgumentException> { TaskId("nodothere") }
+    fun rejectsControlCharacters() {
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId("com.example\u001Fsync") }
+        assertFailsWith<IllegalArgumentException> { requireValidTaskId("com.example\tsync") }
     }
 
     @Test
-    fun rejectsLeadingOrTrailingDot() {
-        assertFailsWith<IllegalArgumentException> { TaskId(".com.example") }
-        assertFailsWith<IllegalArgumentException> { TaskId("com.example.") }
+    fun workRequestConstructionValidates() {
+        assertFailsWith<IllegalArgumentException> { WorkRequest.OneTime(taskId = "") }
+        assertFailsWith<IllegalArgumentException> { WorkRequest.Periodic(taskId = " x", interval = 15.minutes) }
     }
 
     @Test
-    fun rejectsConsecutiveDots() {
-        assertFailsWith<IllegalArgumentException> { TaskId("com..example") }
-    }
+    fun registryValidates() {
+        val registry = WorkerRegistry()
+        assertFailsWith<IllegalArgumentException> { registry.register("") { BackgroundWorker { WorkResult.Success } } }
+        assertFailsWith<IllegalArgumentException> {
+            registry.register(
+                object : BackgroundWorkerFactory {
+                    override val taskIds: Set<String> = setOf("ok.id", " bad")
 
-    @Test
-    fun rejectsDisallowedCharacters() {
-        assertFailsWith<IllegalArgumentException> { TaskId("com.example/sync") }
-        assertFailsWith<IllegalArgumentException> { TaskId("com.example sync") }
-        assertFailsWith<IllegalArgumentException> { TaskId("com.example:sync") }
+                    override fun create(taskId: String): BackgroundWorker? = null
+                },
+            )
+        }
     }
 }

@@ -7,8 +7,8 @@ Typical use: the user just hit Save and you want the document persisted in the b
 ```kotlin
 import com.happycodelucky.backgrounder.*
 
-class DocumentVM(private val backgrounder: Backgrounder, private val repo: DocumentRepository) {
-    private val saveTaskId = TaskId("dev.example.app.save-document")
+class DocumentVM(private val backgrounder: BackgroundTaskManager, private val repo: DocumentRepository) {
+    private val saveTaskId = "dev.example.app.save-document"
 
     suspend fun save(draft: Document): SavedDocument =
         backgrounder.runNow(saveTaskId) {
@@ -27,26 +27,26 @@ let saved: SavedDocument = try await backgrounder.run(taskId: saveTaskId) {
 
 ## What it does, what it doesn't
 
-| | Scheduled (`Backgrounder.schedule`) | Instant (`Backgrounder.runNow`) |
+| | Scheduled (`BackgroundTaskManager.schedule`) | Instant (`BackgroundTaskManager.runNow`) |
 | --- | --- | --- |
 | When it runs | When the OS decides constraints are satisfied | Immediately on the calling coroutine |
 | Network / charging gating | `WorkConstraints` honored | None — caller checks if needed |
 | Retries | `BackoffPolicy`, up to `maxAttempts` | None — thrown exception is terminal |
-| Worker source | Registered factory via `Backgrounder.register` | Lambda passed at call site |
+| Worker source | Registered factory via `BackgroundTaskManager.register` | Lambda passed at call site |
 | Result | Worker returns `WorkResult`; caller doesn't see it directly | Caller `await`s the typed `R` |
 | Survives the caller | Yes — the schedule outlives the calling coroutine | No — caller cancellation cancels the work |
 
-If you need constraint gating, retries, or "schedule and forget," use `Backgrounder.schedule`. If you need "do this and give me back the result," use `runNow`.
+If you need constraint gating, retries, or "schedule and forget," use `BackgroundTaskManager.schedule`. If you need "do this and give me back the result," use `runNow`.
 
 ## Pre-emption — last call wins
 
-`runNow(taskId, …)` is **pre-emptive** for that `TaskId`. Before submitting its own request it cancels:
+`runNow(taskId, …)` is **pre-emptive** for that task id. Before submitting its own request it cancels:
 
-1. Any other in-flight `runNow` for the same `TaskId` — the prior caller's `await` rethrows `CancellationException`.
-2. Any pending scheduled request for the same `TaskId`.
-3. Any in-flight scheduled worker for the same `TaskId` (best-effort per platform — see [cancel](cancel.md) for the per-platform caveats).
+1. Any other in-flight `runNow` for the same task id — the prior caller's `await` rethrows `CancellationException`.
+2. Any pending scheduled request for the same task id.
+3. Any in-flight scheduled worker for the same task id (best-effort per platform — see [cancel](cancel.md) for the per-platform caveats).
 
-This is because `runNow` returns a typed `R` to a specific caller; two concurrent invocations would yield ambiguous results. So concurrent calls with the same `TaskId` serialize as "newest wins":
+This is because `runNow` returns a typed `R` to a specific caller; two concurrent invocations would yield ambiguous results. So concurrent calls with the same task id serialize as "newest wins":
 
 ```kotlin
 // In some VM
@@ -56,7 +56,7 @@ suspend fun saveDraft(draft: Document): SavedDocument =
 //                                      the second runNow cancels the first.
 ```
 
-If you want concurrent independent runs, use distinct `TaskId`s.
+If you want concurrent independent runs, use distinct task ids.
 
 ## Cancellation — structured concurrency
 
@@ -72,7 +72,7 @@ val job = scope.launch {
 job.cancel()  // → repo.save() observes CancellationException, runNow rethrows, scope unwinds
 ```
 
-Cancelling externally via `Backgrounder.cancel(taskId)` likewise propagates — see [cancel](cancel.md).
+Cancelling externally via `BackgroundTaskManager.cancel(taskId)` likewise propagates — see [cancel](cancel.md).
 
 ## Exceptions propagate
 
@@ -92,12 +92,12 @@ The platform layer reports `WorkResult.Failure(message)` to the OS (so iOS / Wor
 
 ## Platform notes
 
-- **iOS** — `runNow` uses `UIApplication.beginBackgroundTask(withName:expirationHandler:)`, **not** `BGTaskScheduler`. The `TaskId` does *not* need to appear in `Info.plist`'s `BGTaskSchedulerPermittedIdentifiers`; it's purely an in-process pre-emption key. iOS grants ~30 seconds of grace if the app backgrounds mid-call.
+- **iOS** — `runNow` uses `UIApplication.beginBackgroundTask(withName:expirationHandler:)`, **not** `BGTaskScheduler`. The task id does *not* need to appear in `Info.plist`'s `BGTaskSchedulerPermittedIdentifiers`; it's purely an in-process pre-emption key. iOS grants ~30 seconds of grace if the app backgrounds mid-call.
 - **Android** — `runNow` enqueues a unique `OneTimeWorkRequest` under the name `${taskId}::runNow` (won't collide with a scheduled run that uses `${taskId}` as its unique name).
 - **macOS / JVM** — `runNow` spawns the lambda on Backgrounder's owned `SupervisorJob` scope. macOS apps generally have foreground time, and a JVM process is fully yours; there's no OS-level "background runway" wrapping the call on either.
 
 ## What can go wrong
 
-- **`Backgrounder.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `Backgrounder.create(...)` → `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`.
+- **`BackgroundTaskManager.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`, all on `BackgroundTaskManager.shared`.
 - **Caller cancelled while the lambda holds a resource** — the lambda must observe cancellation; use `coroutineContext.ensureActive()` between non-suspending blocks, and put cleanup in `try`/`finally` rather than after `runNow`. This is normal Kotlin coroutine hygiene.
 - **Thinking of `runNow` as a `schedule` shortcut** — it isn't. `schedule` outlives the caller and runs when the OS allows; `runNow` *is* the caller's work, just wrapped in an OS-granted background runway. If you backgrounded an in-flight `runNow` on iOS for 5 minutes, the work would still be cancelled when the grace window expired.

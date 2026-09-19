@@ -12,7 +12,7 @@ import kotlin.time.Instant
  *
  * Every internal scheduling, dispatch, deferral, completion, and library-level
  * error path produces one or more [MonitorEvent]s. Consumers observe the stream
- * through [Backgrounder.events] as a `SharedFlow<MonitorEvent>` (Swift sees it
+ * through [BackgroundTaskManager.events] as a `SharedFlow<MonitorEvent>` (Swift sees it
  * as `AsyncSequence<MonitorEvent>` via SKIE), or — for the imperative
  * callback style — implement [BackgrounderEventListener]. Both delivery
  * mechanisms are fed from the same emit point and receive the same events.
@@ -39,7 +39,7 @@ import kotlin.time.Instant
 @ObjCName(swiftName = "MonitorEvent")
 public sealed interface MonitorEvent {
     /** The task this event belongs to. */
-    public val taskId: TaskId
+    public val taskId: String
 
     /** Wall-clock time the event was emitted. */
     public val at: Instant
@@ -50,7 +50,7 @@ public sealed interface MonitorEvent {
      * is also emitted with the previous request.
      */
     public data class Scheduled(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val request: WorkRequest,
     ) : MonitorEvent
@@ -63,7 +63,7 @@ public sealed interface MonitorEvent {
      * had no observable effect).
      */
     public data class ScheduleReplaced(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val policy: ConflictPolicy,
         public val current: WorkRequest,
@@ -75,7 +75,7 @@ public sealed interface MonitorEvent {
      * cancellation.
      */
     public data class Cancelled(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val source: CancelSource,
     ) : MonitorEvent
@@ -89,7 +89,7 @@ public sealed interface MonitorEvent {
      *   surface the scheduled run time (iOS `BGTaskScheduler`).
      */
     public data class WorkStarted(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val attempt: Int,
         public val expectedAt: Instant?,
@@ -101,7 +101,7 @@ public sealed interface MonitorEvent {
      * paired [WorkStarted].
      */
     public data class WorkCompleted(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val attempt: Int,
         public val result: WorkResult,
@@ -115,7 +115,7 @@ public sealed interface MonitorEvent {
      * the discriminator.
      */
     public data class AttemptDeferred(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val attempt: Int,
         public val reason: DeferralReason,
@@ -127,7 +127,7 @@ public sealed interface MonitorEvent {
      * (no factory, declined factory, ephemeral wash). No retry follows.
      */
     public data class Skipped(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val reason: SkipReason,
     ) : MonitorEvent
@@ -140,7 +140,7 @@ public sealed interface MonitorEvent {
      * internally; this event surfaces the original cause.
      */
     public data class AttemptFailed(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val attempt: Int,
         public val reason: AttemptFailureReason,
@@ -151,7 +151,7 @@ public sealed interface MonitorEvent {
      * Emitted just before resubmitting to the platform.
      */
     public data class RetryScheduled(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val nextAttempt: Int,
         public val delay: Duration,
@@ -166,7 +166,7 @@ public sealed interface MonitorEvent {
      * what would otherwise be Kermit-only.
      */
     public data class LibraryError(
-        public override val taskId: TaskId,
+        public override val taskId: String,
         public override val at: Instant,
         public val message: String,
         /**
@@ -192,7 +192,7 @@ public sealed interface MonitorEvent {
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "CancelSource")
 public sealed interface CancelSource {
-    /** A direct caller invoked [Backgrounder.cancel] or [Backgrounder.cancelAll]. */
+    /** A direct caller invoked [BackgroundTaskManager.cancel] or [BackgroundTaskManager.cancelAll]. */
     public data object User : CancelSource
 
     /** A new schedule with [ConflictPolicy.Replace] displaced this task. */

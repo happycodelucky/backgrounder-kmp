@@ -50,3 +50,4 @@ rootProject.name = "backgrounder"
 
 include(":backgrounder")
 include(":background-monitor")
+include(":backgrounder-gradle-plugin")

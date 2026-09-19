@@ -7,7 +7,6 @@ package com.happycodelucky.backgrounder.ios
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.InstantRunner
 import com.happycodelucky.backgrounder.PendingInstantCalls
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -35,7 +34,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * `runNow` is the opposite — *immediate* work the caller is `await`-ing right
  * now. iOS supports this via `UIApplication.beginBackgroundTask`, which:
  *  - has **no `Info.plist` requirement**,
- *  - has **no launch-time registration requirement** (the [TaskId] is just an
+ *  - has **no launch-time registration requirement** (the task id is just an
  *    in-process pre-emption key — never sent to iOS),
  *  - grants up to ~30 seconds of grace runtime if the user backgrounds the
  *    app while the lambda is in flight.
@@ -75,7 +74,7 @@ internal class UIBackgroundTaskInstantRunner(
     private val lock = SynchronizedObject()
 
     override suspend fun <R> run(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R {
         val deferred = CompletableDeferred<Any?>()
@@ -91,7 +90,7 @@ internal class UIBackgroundTaskInstantRunner(
         // Begin the iOS background task. The expiration handler cancels the
         // job; `endBackgroundTask` is balanced by the `try/finally` below.
         val ended = EndOnceFlag()
-        val bgTaskName = "Backgrounder.runNow($taskId)"
+        val bgTaskName = "BackgroundTaskManager.runNow($taskId)"
         var bgTaskId: UIBackgroundTaskIdentifier = UIBackgroundTaskInvalid
         bgTaskId =
             UIApplication.sharedApplication.beginBackgroundTaskWithName(bgTaskName) {
@@ -138,7 +137,7 @@ internal class UIBackgroundTaskInstantRunner(
         }
     }
 
-    override fun cancelInFlight(taskId: TaskId): Boolean {
+    override fun cancelInFlight(taskId: String): Boolean {
         val entry = pending.take(taskId) ?: return false
         entry.job?.cancel(CancellationException("Backgrounder.cancel($taskId)"))
         entry.deferred.cancel(CancellationException("Backgrounder.cancel($taskId)"))
@@ -148,10 +147,10 @@ internal class UIBackgroundTaskInstantRunner(
     }
 
     /**
-     * Cancel the runner-owned scope. Called from `Backgrounder.shutdown` via the iOS builder.
+     * Cancel the runner-owned scope. Called from `BackgroundTaskManager.shutdown` via the iOS builder.
      */
     fun shutdown() {
-        log.i { "shutdown: cancelling Backgrounder.iOS.runNow scope" }
+        log.i { "shutdown: cancelling BackgroundTaskManager.iOS.runNow scope" }
         scope.cancel(CancellationException("UIBackgroundTaskInstantRunner.shutdown"))
     }
 
