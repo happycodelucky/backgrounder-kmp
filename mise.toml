@@ -179,8 +179,13 @@ run = "mkdocs build --strict"
 # ── Aggregates ─────────────────────────────────────────────────────────────
 
 [tasks.check]
-description = "Full local check — exactly what CI's `:backgrounder:check` runs (ktlint + every test target)"
-run = "./gradlew :backgrounder:check"
+description = "Full local check — what CI runs: every module's check (ktlint + tests) plus the commonMain metadata compile that publishing needs"
+# `compileKotlinMetadata` compiles commonMain as a standalone metadata klib — the
+# compilation Maven Central publishing runs and `check` alone does not. It is
+# stricter than the per-target compiles (e.g. kotlin.coroutines.cancellation
+# vs kotlinx.coroutines CancellationException are distinct types there), so it
+# belongs in the pre-merge gate. See LESSONS B-028.
+run = "./gradlew check compileKotlinMetadata"
 
 [tasks.ci]
 description = "Run the exact CI sequence locally: check + xcframework"
