@@ -106,8 +106,8 @@ mavenPublishing {
         }
         scm {
             url.set("https://github.com/happycodelucky/backgrounder")
-            connection.set("scm:git:https://github.com/happycodelucky/backgrounder.git")
-            developerConnection.set("scm:git:ssh://git@github.com/happycodelucky/backgrounder.git")
+            connection.set("scm:git:https://github.com/happycodelucky/backgrounder-kmp.git")
+            developerConnection.set("scm:git:ssh://git@github.com/happycodelucky/backgrounder-kmp.git")
         }
     }
 }

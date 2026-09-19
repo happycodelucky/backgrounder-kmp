@@ -11,30 +11,29 @@
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white" alt="Android 11+">
   <img src="https://img.shields.io/badge/JVM-21%2B-orange.svg?style=for-the-badge&logo=openjdk&logoColor=white" alt="JVM 21+">
   <img src="https://img.shields.io/badge/Kotlin-2.3-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.3">
-  <a href="https://github.com/happycodelucky/backgrounder/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder/ci.yml?style=for-the-badge&label=ci" alt="CI"></a>
-  <a href="https://github.com/happycodelucky/backgrounder/actions/workflows/docs.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder/docs.yml?style=for-the-badge&label=docs" alt="Docs"></a>
-  <a href="https://github.com/happycodelucky/backgrounder/releases/latest"><img src="https://img.shields.io/github/v/release/happycodelucky/backgrounder?style=for-the-badge" alt="Release"></a>
+  <a href="https://github.com/happycodelucky/backgrounder-kmp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder-kmp/ci.yml?style=for-the-badge&label=ci" alt="CI"></a>
+  <a href="https://github.com/happycodelucky/backgrounder-kmp/actions/workflows/docs.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder-kmp/docs.yml?style=for-the-badge&label=docs" alt="Docs"></a>
+  <a href="https://github.com/happycodelucky/backgrounder-kmp/releases/latest"><img src="https://img.shields.io/github/v/release/happycodelucky/backgrounder-kmp?style=for-the-badge" alt="Release"></a>
 </p>
 
 ---
 
-Backgrounder wraps each platform's background-scheduling primitive behind one API:
+Backgrounder wraps each platform's background-scheduling primitive behind one API you call from `commonMain`:
 
 - **Android**: Jetpack `WorkManager` (one-shot + periodic, with constraints, retry, expedited).
 - **iOS 18+**: `BGTaskScheduler` (one-shot + library-emulated periodic; force-quit caveat documented).
 - **macOS 15+**: Foundation's `NSBackgroundActivityScheduler` (one-shot + native periodic).
 - **JVM 21+** (desktop / server): library-owned coroutines (one-shot + periodic; in-process, nothing survives the process).
 
-Full documentation [here](https://happycodelucky.github.io/backgrounder-kmp/).
+Full documentation: **[happycodelucky.github.io/backgrounder-kmp](https://happycodelucky.github.io/backgrounder-kmp/)**.
 
 ---
 
 ## Installation
 
-Backgrounder publishes to Maven Central. From a Kotlin Multiplatform project,
-depend on the artifact from `commonMain` — KMP resolves the right per-target
-slice (Android AAR, `jvm` JAR, `iosArm64`, `iosSimulatorArm64`, `macosArm64`)
-for you:
+### 1. The library
+
+Backgrounder publishes to Maven Central. From a Kotlin Multiplatform project, depend on it from `commonMain` and KMP resolves the right slice per target (Android AAR, `jvm` JAR, `iosArm64`, `iosSimulatorArm64`, `macosArm64`):
 
 ```kotlin
 // shared/build.gradle.kts
@@ -47,7 +46,7 @@ kotlin {
 }
 ```
 
-Android-only consumers depend on the Android artifact directly:
+Android-only apps depend on the Android artifact directly:
 
 ```kotlin
 // app/build.gradle.kts
@@ -56,112 +55,40 @@ dependencies {
 }
 ```
 
-Pure-Swift apps that don't use Kotlin Multiplatform aren't supported yet — a
-native Swift Package Manager distribution is on the roadmap. See the
-[Installation guide](https://happycodelucky.github.io/backgrounder/installation/)
-for platform floors, the Apple-side SPM roadmap, and the local-development
-override.
+Pure-Swift apps add this repository as a Swift Package Manager dependency pinned to a release tag; the tagged `Package.swift` hands SPM a prebuilt, SKIE-enhanced `Backgrounder.xcframework`. See [Installation](https://happycodelucky.github.io/backgrounder-kmp/installation/) for platform floors and the SPM details.
 
----
+### 2. The Gradle plugin (iOS apps)
 
-## Usage
+iOS only fires a background task whose identifier is listed in the app's `Info.plist` under `BGTaskSchedulerPermittedIdentifiers`. Keeping that list in sync with code by hand is the classic way to ship a task that silently never runs. The Backgrounder Gradle plugin writes the list from your code instead:
 
 ```kotlin
-// commonMain
-class SyncWorker(private val repo: MyRepository) : BackgroundWorker {
-    override suspend fun execute(context: WorkerContext): WorkResult {
-        return try {
-            repo.sync()
-            WorkResult.Success
-        } catch (t: Throwable) {
-            WorkResult.Retry
-        }
-    }
+// shared/build.gradle.kts
+plugins {
+    kotlin("multiplatform")
+    id("com.happycodelucky.backgrounder") version "0.9.0"
+}
 
+backgrounder {
+    iosInfoPlist = file("../iOSApp/App/Info.plist")
+    iosBundleIdentifier = "dev.example.app"   // adds the default tick identifier for you
+}
+```
+
+Mark each task id that iOS must know about — every id you may schedule as a one-shot — and run `./gradlew updateBackgrounderInfoPlist` (from an Xcode run-script phase, a pre-commit hook, or by hand):
+
+```kotlin
+class UploadWorker(...) : BackgroundWorker {
     companion object {
-        const val ID = "dev.example.app.sync"
+        @BGTaskSchedulerPermittedIdentifier const val ID = "dev.example.app.upload"
     }
 }
 ```
 
-The library never instantiates your worker by reflection — you give it a factory at app launch:
+Periodic work and `runNow` never touch `BGTaskScheduler` and need no entry. If you'd rather maintain the plist yourself, the required entries are the tick identifier (`<bundle id>.backgrounder-tick` by default) plus one per one-shot id; the library logs an error at `start()` when the tick is missing and a warning for each registered id that is. See [Generate the iOS permitted identifiers](https://happycodelucky.github.io/backgrounder-kmp/recipes/ios-permitted-identifiers/).
 
-```kotlin
-// Register a single worker
-BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+### 3. Android manifest
 
-// Or register many workers at once with a BackgroundWorkerFactory
-BackgroundTaskManager.shared.register(appModule.workerFactory())
-```
-
-The closure — or factory — is yours: resolve dependencies through Koin, Hilt, kotlin-inject, hand-wired singletons — whatever your app already uses. A fresh worker is built per invocation with all its dependencies wired.
-
-Then schedule from anywhere:
-
-```kotlin
-backgrounder.schedule(
-    WorkRequest.OneTime(
-        taskId = SyncWorker.ID,
-        constraints = WorkConstraints(networkRequired = NetworkRequirement.Any),
-        backoff = BackoffPolicy.exponential(initialDelay = 30.seconds, maxAttempts = 5),
-    ),
-)
-```
-
-`networkRequired` is honoured everywhere — Android holds the worker via WorkManager's native constraint gating; iOS, macOS, and the JVM use a library-managed pre-execution reachability gate (powered by [reachable](https://github.com/happycodelucky/reachable)) that waits up to 5 seconds before short-circuiting to `WorkResult.Retry`. See [Recipes → Require a network connection](https://happycodelucky.github.io/backgrounder/recipes/network-required/).
-
-Or for "do this work in the background **right now** and give me back the typed result" — no constraints, no retries, structured `await` — use `runNow`:
-
-```kotlin
-val saved: SavedDocument = backgrounder.runNow(saveTaskId) {
-    repo.save(draft)
-}
-```
-
-`runNow` runs on the platform's real background primitive so the work survives if the user backgrounds the app mid-call — `UIApplication.beginBackgroundTask` on iOS, `WorkManager` on Android, a library scope on macOS and the JVM. See the [Run now recipe](https://happycodelucky.github.io/backgrounder/recipes/run-now/) for the full contract.
-
----
-
-## Launch sequence — Android
-
-`Application.onCreate` does **three** things — *create*, *register*, *start* — plus one mandatory wiring: install Backgrounder's `WorkerFactory` via `Configuration.Provider`.
-
-```kotlin
-import androidx.work.Configuration
-import com.happycodelucky.backgrounder.Backgrounder
-import com.happycodelucky.backgrounder.androidWorkerFactory
-import com.happycodelucky.backgrounder.shared
-
-class MyApp : Application(), Configuration.Provider {
-    override fun onCreate() {
-        super.onCreate()
-
-        // 1. BackgroundTaskManager.shared already exists: the library's androidx.startup
-        //    initializer built it before onCreate ran. If your manifest removes
-        //    the InitializationProvider entirely, call
-        //    BackgroundTaskManager.configure(application = this) here first.
-
-        // 2. Register every worker factory. The closure is yours — resolve
-        //    dependencies however you like (Koin, Hilt, hand-wired).
-        BackgroundTaskManager.shared.register(SyncWorker.ID) {
-            SyncWorker(repo = appGraph.repository)
-        }
-
-        // 3. Start. Sweeps ephemeral work left over from the previous process,
-        //    seals the registry, and flips the ready gate so workers enqueued
-        //    before this point may now dispatch.
-        BackgroundTaskManager.shared.start()
-    }
-
-    // Tell WorkManager to use Backgrounder's WorkerFactory. Required.
-    override val workManagerConfiguration: Configuration get() =
-        Configuration.Builder()
-            .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
-            .build()
-}
-```
-
-Add to your app's `AndroidManifest.xml` to disable WorkManager's default auto-init (mandatory whenever you implement `Configuration.Provider`):
+Backgrounder installs its own `WorkerFactory`, which requires your `Application` to implement `Configuration.Provider` and WorkManager's auto-init to be disabled. Remove only WorkManager's initializer; Backgrounder's own startup initializer rides on the same provider:
 
 ```xml
 <provider
@@ -177,95 +104,105 @@ Add to your app's `AndroidManifest.xml` to disable WorkManager's default auto-in
 
 ---
 
-## Launch sequence — iOS
+## What you can do
 
-```swift
-@main
-final class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions options:
-            [UIApplication.LaunchOptionsKey: Any]?,
-    ) -> Bool {
-        // 1. BackgroundTaskManager.shared builds itself on first access, using the
-        //    default tick identifier "<bundle id>.backgrounder-tick" for the
-        //    BGAppRefreshTaskRequest that wakes periodic dispatch. To supply an
-        //    event listener or your own tick identifier, call
-        //    BackgroundTaskManager.companion.create(tickIdentifier:) before this line.
-        let backgrounder = BackgroundTaskManager.shared
+Three kinds of background work, one `BackgroundTaskManager`:
 
-        // 2. Register every worker factory. Resolve dependencies from
-        //    whatever DI graph your iOS app uses.
-        backgrounder.register(taskId: SyncWorker.companion.ID) {
-            SyncWorker(repo: AppGraph.shared.repository)
-        }
+**Run now and survive backgrounding.** The user taps Save and switches apps. `runNow` runs your lambda immediately on the platform's real background primitive (`UIApplication.beginBackgroundTask` on iOS, `WorkManager` on Android, a library scope on macOS and the JVM), so it finishes even if the app is backgrounded mid-call, and suspends until the typed result is back. No constraints, no retries: the lambda *is* the work.
 
-        // 3. Start. Performs the iOS ephemeral sweep, registers
-        //    BGTaskScheduler launch handlers (tick + per-id one-shots),
-        //    starts the foreground dispatch loop, and resurrects active
-        //    periodic state. Must run before this method returns.
-        backgrounder.start()
-        return true
-    }
+```kotlin
+val saved: SavedDocument = BackgroundTaskManager.shared.runNow(SaveTask.ID) {
+    repo.save(draft)
 }
 ```
 
-Add the tick identifier (mandatory) plus one entry per `WorkRequest.OneTime` task id you schedule to your app's `Info.plist`. Periodic ids do **not** need their own entries.
+**Schedule a one-time job.** Work that should happen once, when conditions allow, and outlive the current process: an upload that waits for a network, a cleanup that waits for charging. Persisted by the platform, retried with backoff on `WorkResult.Retry`, replaceable or deduplicated by task id.
 
-```xml
-<key>BGTaskSchedulerPermittedIdentifiers</key>
-<array>
-    <string>dev.example.app.backgrounder-tick</string>  <!-- mandatory: the default tick, "<bundle id>.backgrounder-tick" -->
-    <string>dev.example.app.upload</string>             <!-- one-shot WorkRequest.OneTime -->
-</array>
+```kotlin
+BackgroundTaskManager.shared.schedule(
+    WorkRequest.OneTime(
+        taskId = UploadWorker.ID,
+        constraints = WorkConstraints(networkRequired = NetworkRequirement.Any),
+        backoff = BackoffPolicy.exponential(initialDelay = 30.seconds, maxAttempts = 5),
+    ),
+)
 ```
 
-Or don't maintain the array by hand: mark the tick and each one-shot id `@BGTaskSchedulerPermittedIdentifier const val` in the shared module, apply the `com.happycodelucky.backgrounder` Gradle plugin, and `./gradlew updateBackgrounderInfoPlist` rewrites the array from your code. See [docs/recipes/ios-permitted-identifiers.md](docs/recipes/ios-permitted-identifiers.md).
+**Periodic work.** A sync every few hours. Runs on `WorkManager`'s periodic requests on Android and `NSBackgroundActivityScheduler` on macOS. On iOS the library drives it through one `BGAppRefreshTaskRequest` plus an in-process loop while the app is foregrounded, coalescing so a task fires once per cycle, never in a catch-up burst.
 
-A missing tick identifier is reported with a Kermit error during `backgrounder.start()` (close to the cause; not at first `schedule()`). Missing one-shot ids surface as warnings — the library can't tell at registration time which ids will be used as one-shots vs periodics.
-
-See [docs/platforms/ios.md](docs/platforms/ios.md) for how the foreground/background dispatcher works, the coalescing contract, and the per-path execution windows.
-
-### iOS testing
-
-Background tasks don't fire automatically in the iOS Simulator. Drive them from LLDB while paused:
-
-```
-(lldb) e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"dev.example.app.background-tick"]
-(lldb) e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateExpirationForTaskWithIdentifier:@"dev.example.app.background-tick"]
+```kotlin
+BackgroundTaskManager.shared.schedule(
+    WorkRequest.Periodic(taskId = SyncWorker.ID, interval = 6.hours),
+)
 ```
 
-Use the tick identifier (not the per-task id) to simulate background dispatch of periodics. For one-shots, use the per-task id you scheduled. The foreground dispatch loop runs normally regardless and doesn't need LLDB.
+Around those: `cancel(taskId)` and `cancelAll()`, `scheduled()` to inspect what's pending and why, an `events()` flow for monitoring, and `guarantees()` for the per-platform truth table below.
 
 ---
 
-## Launch sequence — macOS
+## Initialize and use
 
-```swift
-@main
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    // BackgroundTaskManager.shared builds itself on first access.
+Define a worker in `commonMain`. Workers are built by a factory you register, never by reflection, so they take dependencies through the constructor:
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        BackgroundTaskManager.shared.register(taskId: SyncWorker.companion.ID) {
-            SyncWorker(repo: AppGraph.shared.repository)
+```kotlin
+class SyncWorker(private val repo: MyRepository) : BackgroundWorker {
+    override suspend fun execute(context: WorkerContext): WorkResult =
+        try {
+            repo.sync()
+            WorkResult.Success
+        } catch (t: Throwable) {
+            WorkResult.Retry   // retried per the request's BackoffPolicy
         }
-        BackgroundTaskManager.shared.start()
-    }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        BackgroundTaskManager.shared.shutdown()
+    companion object {
+        const val ID = "dev.example.app.sync"
     }
 }
 ```
 
-`NSBackgroundActivityScheduler` owns scheduling lifetime, so there's no force-quit caveat — periodic schedules survive cleanly.
+There is one `BackgroundTaskManager` per process, `BackgroundTaskManager.shared`. At launch, register every worker factory, then start. Nothing is constructed or passed around.
+
+**Android** — `shared` already exists when `onCreate` runs (built by the startup initializer):
+
+```kotlin
+class MyApp : Application(), Configuration.Provider {
+    override fun onCreate() {
+        super.onCreate()
+        BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+        BackgroundTaskManager.shared.start()
+    }
+
+    override val workManagerConfiguration: Configuration get() =
+        Configuration.Builder()
+            .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
+            .build()
+}
+```
+
+**iOS** — `shared` builds itself on first access. Register and start before the launch method returns:
+
+```swift
+func application(_ application: UIApplication,
+                 didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    BackgroundTaskManager.shared.register(taskId: SyncWorker.companion.ID) {
+        SyncWorker(repo: AppGraph.shared.repository)
+    }
+    BackgroundTaskManager.shared.start()
+    return true
+}
+```
+
+**macOS and JVM** — the same two calls from `applicationDidFinishLaunching` or `main()`, plus `BackgroundTaskManager.shared.shutdown()` on exit.
+
+The factory closure is where DI happens: resolve from Koin, Hilt, kotlin-inject, or hand-wired singletons. To register a whole module's workers at once, pass a `BackgroundWorkerFactory`. Then schedule from anywhere in your code as shown above.
+
+Full launch sequences, including the iOS force-quit caveat and how to simulate background dispatch in the simulator, live in the docs: [Android](https://happycodelucky.github.io/backgrounder-kmp/platforms/android/), [iOS](https://happycodelucky.github.io/backgrounder-kmp/platforms/ios/), [macOS](https://happycodelucky.github.io/backgrounder-kmp/platforms/macos/), [JVM](https://happycodelucky.github.io/backgrounder-kmp/platforms/jvm/).
 
 ---
 
 ## What each platform actually guarantees
 
-Read at runtime via `backgrounder.guarantees()`:
+Read at runtime via `BackgroundTaskManager.shared.guarantees()`:
 
 |                              | Android `WorkManager` | iOS 18 `BGTaskScheduler` | macOS 15 `NSBackgroundActivityScheduler` |
 | ---------------------------- | --------------------- | ------------------------ | ---------------------------------------- |
@@ -278,19 +215,18 @@ Read at runtime via `backgrounder.guarantees()`:
 | `minimumPeriodicInterval`    | 15 min                | 15 min recommended       | 1 sec                                    |
 | `maxConcurrentTasks`         | unbounded-ish         | ~1000                    | unbounded-ish                            |
 
-iOS-specific: when the user **force-quits the app from the App Switcher**, all background tasks stop firing until the user launches the app again. That's Apple's design — we can't paper over it. Surface this in your UX (e.g. "Open the app daily so we can sync.").
+iOS-specific: when the user **force-quits the app from the App Switcher**, all background tasks stop firing until the user launches the app again. That's Apple's design. Surface it in your UX ("Open the app daily so we can sync."). See [Force-quit caveat](https://happycodelucky.github.io/backgrounder-kmp/platforms/force-quit/).
+
+`WorkRequest(ephemeral = true)` marks work that must be re-scheduled by app code after init; every cold start cancels leftover ephemeral jobs before any worker can dispatch. See [The `ephemeral` flag](https://happycodelucky.github.io/backgrounder-kmp/concepts/ephemeral/).
 
 ---
 
-## The `ephemeral` flag
+## Documentation
 
-`WorkRequest(ephemeral = true)` declares "this work must be re-scheduled by app code after init; do not run it from a state I didn't deliberately put it in." On every cold app start, the library cancels every ephemeral job *before* any worker can dispatch.
-
-Use it when the worker depends on app state initialised after `Application.onCreate` / `application(_:didFinishLaunchingWithOptions:)`. The sweep happens at:
-- **Android**: at the top of `BackgroundTaskManager.shared.start()`; leftover ids are snapshotted at construction, before `Application.onCreate`.
-- **iOS / macOS**: top of `backgrounder.start()`.
-
-On Android, the sweep is augmented by a per-instance ready gate: if WorkManager somehow fires an ephemeral worker before `backgrounder.start()` has been called, the worker returns `Failure("dispatched before ephemeralReady")` immediately rather than running with stale state.
+- **[Getting started](https://happycodelucky.github.io/backgrounder-kmp/getting-started/)** — install, configure, run one job.
+- **[Recipes](https://happycodelucky.github.io/backgrounder-kmp/recipes/one-shot/)** — one-shot, run now, periodic, cancel, retry, input, network, monitoring, testing, the iOS plist plugin.
+- **[Concepts](https://happycodelucky.github.io/backgrounder-kmp/concepts/architecture/)** — architecture, task ids, worker context and DI, guarantees, opportunistic dispatch.
+- **[Platforms](https://happycodelucky.github.io/backgrounder-kmp/platforms/android/)** — per-platform launch sequences and what runs where.
 
 ---
 
@@ -306,26 +242,27 @@ mise trust && mise install
 Common tasks:
 
 ```bash
-mise run check          # all unit tests across iOS sim, macOS native, Android JVM
+mise run check          # all unit tests across iOS sim, macOS native, Android JVM, the Gradle plugin
 mise run build:ios      # iOS device + Apple Silicon simulator debug frameworks, SKIE-enhanced
 mise run xcframework    # release Backgrounder.xcframework (KMMBridge artifact)
 
 # Raw Gradle equivalents, for reference:
-./gradlew :backgrounder:check
+./gradlew check
 ./gradlew :backgrounder:linkDebugFrameworkIosArm64
 ./gradlew :backgrounder:assembleBackgrounderXCFramework
 ```
 
-`mise run check` runs:
-- `iosSimulatorArm64Test` — kotlin-test + Turbine + multiplatform-settings test impl
-- `macosArm64Test` — same suite, native macOS
-- `testAndroidHostTest` — JVM-side tests via Robolectric-free pure mappers
+Background tasks don't fire automatically in the iOS Simulator. Drive them from LLDB while paused, using the tick identifier for periodics and the per-task id for one-shots:
+
+```
+(lldb) e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"dev.example.app.backgrounder-tick"]
+```
 
 ---
 
 ## Repository conventions
 
-- **Versions** (`gradle/libs.versions.toml`) are the single source of truth. Web-search before bumping any dependency (CLAUDE.md §2). Kotlin is pinned at the highest version SKIE supports — currently 2.3.20 with SKIE 0.10.11.
+- **Versions** (`gradle/libs.versions.toml`) are the single source of truth. Web-search before bumping any dependency (CLAUDE.md §2). Kotlin is pinned at the highest version SKIE supports.
 - Every public method carries `@ObjCName(swiftName = ...)` so the call site reads like Swift. `suspend fun`s reachable from Swift do **not** include `CancellationException` in `@Throws` — SKIE bridges cancellation through Swift's native `CancellationError` automatically (CLAUDE.md §8).
 - `internal` by default; widen visibility only when needed (CLAUDE.md §3).
 - **DI is a user choice.** The library uses constructor injection internally and a factory-closure seam for user code; no DI container is required.

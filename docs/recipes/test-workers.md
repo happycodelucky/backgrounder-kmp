@@ -46,11 +46,11 @@ In v1, the library ships an internal `FakeScheduler` for its own `commonTest` su
 Until v2 ships, the practical alternatives are:
 
 1. **Wrap scheduling calls behind your own interface** — e.g. an `AppScheduler` interface your business logic depends on, with a fake implementation in test code. Three lines of indirection; lets you assert against a recorder.
-2. **Use the v1 contract test as a reference** — the [`SchedulerContractTest`](https://github.com/happycodelucky/backgrounder/blob/main/backgrounder/src/commonTest/kotlin/com/happycodelucky/backgrounder/SchedulerContractTest.kt) inside the library's own test source set is a worked example of the scheduling contract; you can copy the pattern.
+2. **Use the v1 contract test as a reference** — the [`SchedulerContractTest`](https://github.com/happycodelucky/backgrounder-kmp/blob/main/backgrounder/src/commonTest/kotlin/com/happycodelucky/backgrounder/SchedulerContractTest.kt) inside the library's own test source set is a worked example of the scheduling contract; you can copy the pattern.
 
 ## Testing on Android with `WorkManagerTestInitHelper`
 
-The `androidx.work:work-testing` library provides `WorkManagerTestInitHelper` for end-to-end testing on the Android JVM (Robolectric required). Backgrounder's own Android tests use it; see the [`WorkManagerSchedulerTest`](https://github.com/happycodelucky/backgrounder/blob/main/backgrounder/src/androidHostTest/kotlin/com/happycodelucky/backgrounder/android/WorkManagerSchedulerTest.kt) (when it lands) for a worked example.
+The `androidx.work:work-testing` library provides `WorkManagerTestInitHelper` for end-to-end testing on the Android JVM (Robolectric required). Backgrounder's own Android tests use it; see the [`WorkManagerSchedulerTest`](https://github.com/happycodelucky/backgrounder-kmp/blob/main/backgrounder/src/androidHostTest/kotlin/com/happycodelucky/backgrounder/android/WorkManagerSchedulerTest.kt) (when it lands) for a worked example.
 
 ## Testing on iOS
 

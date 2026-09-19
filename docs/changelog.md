@@ -73,4 +73,4 @@ First public artifact in preparation. The v1 surface is feature-complete:
 - Android-only constraints (storage-not-low, device-idle, content URI triggers) in a `WorkConstraints.Android` extension.
 - Published `:testing` artifact with stable, public `FakeScheduler`.
 
-The latest version of this changelog lives at the [GitHub Releases page](https://github.com/happycodelucky/backgrounder/releases) once published.
+The latest version of this changelog lives at the [GitHub Releases page](https://github.com/happycodelucky/backgrounder-kmp/releases) once published.

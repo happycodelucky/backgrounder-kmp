@@ -4,7 +4,7 @@ The Android launch sequence is **two steps** — `register`, then `start` — pl
 
 ```kotlin
 import androidx.work.Configuration
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.androidWorkerFactory
 import com.happycodelucky.backgrounder.shared
 

@@ -51,4 +51,4 @@ No emulation state machine, no OS coalescing. The scheduler fires once per `inte
 
 ## Shutdown
 
-`backgrounder.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope and the `runNow` runner's. Call it from a JVM shutdown hook (long-running services) or your UI framework's teardown (desktop apps). Without it, in-flight workers run until the JVM exits — harmless for a process that's quitting anyway, but a long-lived embedder (e.g. hosting Backgrounder inside a larger server) should always call `shutdown()`, which also releases the `BackgroundTaskManager.shared` slot so a fresh instance can be built.
+`BackgroundTaskManager.shared.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope and the `runNow` runner's. Call it from a JVM shutdown hook (long-running services) or your UI framework's teardown (desktop apps). Without it, in-flight workers run until the JVM exits — harmless for a process that's quitting anyway, but a long-lived embedder (e.g. hosting Backgrounder inside a larger server) should always call `shutdown()`, which also releases the `BackgroundTaskManager.shared` slot so a fresh instance can be built.
