@@ -1,7 +1,6 @@
 package com.happycodelucky.backgrounder.monitor
 
 import com.happycodelucky.backgrounder.MonitorEvent
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +35,7 @@ import kotlin.time.Instant
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MonitorAttachTest {
-    private val taskId = TaskId("com.example.task")
+    private val taskId = "com.example.task"
 
     private fun event(now: Instant = Instant.fromEpochMilliseconds(0)): MonitorEvent =
         MonitorEvent.Scheduled(

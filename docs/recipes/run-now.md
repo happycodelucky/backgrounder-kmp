@@ -8,7 +8,7 @@ Typical use: the user just hit Save and you want the document persisted in the b
 import com.happycodelucky.backgrounder.*
 
 class DocumentVM(private val backgrounder: Backgrounder, private val repo: DocumentRepository) {
-    private val saveTaskId = TaskId("dev.example.app.save-document")
+    private val saveTaskId = "dev.example.app.save-document"
 
     suspend fun save(draft: Document): SavedDocument =
         backgrounder.runNow(saveTaskId) {
@@ -40,13 +40,13 @@ If you need constraint gating, retries, or "schedule and forget," use `Backgroun
 
 ## Pre-emption — last call wins
 
-`runNow(taskId, …)` is **pre-emptive** for that `TaskId`. Before submitting its own request it cancels:
+`runNow(taskId, …)` is **pre-emptive** for that task id. Before submitting its own request it cancels:
 
-1. Any other in-flight `runNow` for the same `TaskId` — the prior caller's `await` rethrows `CancellationException`.
-2. Any pending scheduled request for the same `TaskId`.
-3. Any in-flight scheduled worker for the same `TaskId` (best-effort per platform — see [cancel](cancel.md) for the per-platform caveats).
+1. Any other in-flight `runNow` for the same task id — the prior caller's `await` rethrows `CancellationException`.
+2. Any pending scheduled request for the same task id.
+3. Any in-flight scheduled worker for the same task id (best-effort per platform — see [cancel](cancel.md) for the per-platform caveats).
 
-This is because `runNow` returns a typed `R` to a specific caller; two concurrent invocations would yield ambiguous results. So concurrent calls with the same `TaskId` serialize as "newest wins":
+This is because `runNow` returns a typed `R` to a specific caller; two concurrent invocations would yield ambiguous results. So concurrent calls with the same task id serialize as "newest wins":
 
 ```kotlin
 // In some VM
@@ -56,7 +56,7 @@ suspend fun saveDraft(draft: Document): SavedDocument =
 //                                      the second runNow cancels the first.
 ```
 
-If you want concurrent independent runs, use distinct `TaskId`s.
+If you want concurrent independent runs, use distinct task ids.
 
 ## Cancellation — structured concurrency
 
@@ -92,7 +92,7 @@ The platform layer reports `WorkResult.Failure(message)` to the OS (so iOS / Wor
 
 ## Platform notes
 
-- **iOS** — `runNow` uses `UIApplication.beginBackgroundTask(withName:expirationHandler:)`, **not** `BGTaskScheduler`. The `TaskId` does *not* need to appear in `Info.plist`'s `BGTaskSchedulerPermittedIdentifiers`; it's purely an in-process pre-emption key. iOS grants ~30 seconds of grace if the app backgrounds mid-call.
+- **iOS** — `runNow` uses `UIApplication.beginBackgroundTask(withName:expirationHandler:)`, **not** `BGTaskScheduler`. The task id does *not* need to appear in `Info.plist`'s `BGTaskSchedulerPermittedIdentifiers`; it's purely an in-process pre-emption key. iOS grants ~30 seconds of grace if the app backgrounds mid-call.
 - **Android** — `runNow` enqueues a unique `OneTimeWorkRequest` under the name `${taskId}::runNow` (won't collide with a scheduled run that uses `${taskId}` as its unique name).
 - **macOS / JVM** — `runNow` spawns the lambda on Backgrounder's owned `SupervisorJob` scope. macOS apps generally have foreground time, and a JVM process is fully yours; there's no OS-level "background runway" wrapping the call on either.
 

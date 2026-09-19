@@ -6,7 +6,6 @@ import androidx.work.WorkManager
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.InstantRunner
 import com.happycodelucky.backgrounder.PendingInstantCalls
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.coroutines.CompletableDeferred
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -27,7 +26,7 @@ internal class WorkManagerInstantRunner(
     private val log = Logger.withTag("Backgrounder/Android/InstantRunner")
 
     override suspend fun <R> run(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R {
         val deferred = CompletableDeferred<Any?>()
@@ -67,7 +66,7 @@ internal class WorkManagerInstantRunner(
         }
     }
 
-    override fun cancelInFlight(taskId: TaskId): Boolean {
+    override fun cancelInFlight(taskId: String): Boolean {
         val entry = pending.take(taskId) ?: return false
         val workId = entry.platformHandle
         entry.deferred.cancel(CancellationException("Backgrounder.cancel($taskId)"))
@@ -82,10 +81,10 @@ internal class WorkManagerInstantRunner(
         /**
          * The unique-work key for an instant dispatch under [taskId]. Distinct
          * suffix (`::runNow`) keeps it disjoint from the scheduled path's
-         * unique-work key (which is just `taskId.value`), so a `runNow` and a
-         * `schedule` for the same `TaskId` don't collide at the WorkManager
+         * unique-work key (which is just `taskId`), so a `runNow` and a
+         * `schedule` for the same task id don't collide at the WorkManager
          * level.
          */
-        internal fun uniqueWorkName(taskId: TaskId): String = "${taskId.value}::runNow"
+        internal fun uniqueWorkName(taskId: String): String = "$taskId::runNow"
     }
 }

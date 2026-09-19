@@ -1,7 +1,6 @@
 package com.happycodelucky.backgrounder.ios
 
 import com.happycodelucky.backgrounder.NetworkRequirement
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkInput
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
@@ -19,7 +18,7 @@ import kotlin.test.assertEquals
  * schema-version sweep / migration in production.
  */
 class IOSStateStoreNetworkRequiredTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.network")
+    private val taskId = "com.happycodelucky.backgrounder.test.network"
 
     /**
      * v1 schema (no `network_required` key): manually populate a `MapSettings`
@@ -33,7 +32,7 @@ class IOSStateStoreNetworkRequiredTest {
         // Write a v1-shaped record without the network_required key. We only
         // need the keys our readers actually probe; the schema_version is set
         // to 1 to simulate persisted state from before this PR.
-        val base = "tasks.${taskId.value}."
+        val base = "tasks.$taskId."
         settings.putInt("${base}schema_version", 1)
         settings.putString("${base}kind", "oneshot")
         settings.putBoolean("${base}active", true)
@@ -78,7 +77,7 @@ class IOSStateStoreNetworkRequiredTest {
         // to None rather than crash. This is the dual of the missing-key
         // case — both produce the same safe fallback.
         val settings = MapSettings()
-        val base = "tasks.${taskId.value}."
+        val base = "tasks.$taskId."
         settings.putString("${base}network_required", "Cellular") // not in NetworkRequirement.entries
         val store = IOSStateStore(settings)
         assertEquals(NetworkRequirement.None, store.readNetworkRequired(taskId))

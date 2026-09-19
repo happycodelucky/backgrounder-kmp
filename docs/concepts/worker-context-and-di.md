@@ -20,7 +20,7 @@ backgrounder.register(UploadWorker.ID) {
 class AppModuleWorkerFactory(private val graph: AppGraph) : BackgroundWorkerFactory {
     override val taskIds = setOf(SyncWorker.ID, UploadWorker.ID)
 
-    override fun create(taskId: TaskId): BackgroundWorker? = when (taskId) {
+    override fun create(taskId: String): BackgroundWorker? = when (taskId) {
         SyncWorker.ID   -> SyncWorker(repo = graph.repository)
         UploadWorker.ID -> UploadWorker(api = graph.api, retryPolicy = graph.retryPolicy)
         else            -> null
@@ -104,7 +104,7 @@ Per-invocation runtime data:
 
 ```kotlin
 class WorkerContext internal constructor(
-    val taskId: TaskId,
+    val taskId: String,
     val attempt: Int,                    // 0-based
     val input: WorkInput,
     val capabilities: PlatformCapabilities,

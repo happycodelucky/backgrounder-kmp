@@ -36,9 +36,9 @@ ARM-only *native* targets — `iosArm64`, `iosSimulatorArm64`, Android `arm64-v8
 
 - **Scheduling verbs** (`backgrounder.schedule(...)`, `backgrounder.cancelAll()`, `backgrounder.scheduled()`, `backgrounder.guarantees()`) — OS-backed scheduled work. Honors `WorkConstraints`, `BackoffPolicy`, retries. Workers come from the registry. See [Schedule a one-shot](../recipes/one-shot.md) / [Periodic](../recipes/periodic.md).
 - **`runNow<R>(taskId, task)`** — instant dispatch. Suspends until the typed result is back. Bypasses constraints, backoff, retries, and the registry — the lambda *is* the work. Routed through the platform's real background primitive (`beginBackgroundTask` on iOS, `WorkManager` on Android, library scope on macOS and the JVM). See [Run now](../recipes/run-now.md).
-- **`cancel(taskId)`** on `Backgrounder` is the unified cancel — it kills both scheduled and in-flight `runNow` for the given `TaskId`. `cancelAll()` covers only pending scheduled requests and does not touch in-flight `runNow` calls.
+- **`cancel(taskId)`** on `Backgrounder` is the unified cancel — it kills both scheduled and in-flight `runNow` for the given task id. `cancelAll()` covers only pending scheduled requests and does not touch in-flight `runNow` calls.
 
-The two surfaces are independent code paths — a `TaskId` can flow through either or both. They share only the `Backgrounder` lifecycle (`start()` / `shutdown()`) and the cancel surface above.
+The two surfaces are independent code paths — a task id can flow through either or both. They share only the `Backgrounder` lifecycle (`start()` / `shutdown()`) and the cancel surface above.
 
 ## Why this shape
 

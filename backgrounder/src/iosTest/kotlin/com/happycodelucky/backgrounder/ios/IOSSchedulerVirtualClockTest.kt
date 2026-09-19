@@ -10,7 +10,6 @@ import com.happycodelucky.backgrounder.ConflictPolicy
 import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.ReachabilityGate
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerRegistry
@@ -32,29 +31,29 @@ import kotlin.time.Duration.Companion.seconds
  * directly and these assertions were impossible (see LESSONS.md B-020/N-011).
  */
 class IOSSchedulerVirtualClockTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.virtualclock")
+    private val taskId = "com.happycodelucky.backgrounder.test.virtualclock"
 
     // Same recognisable base as IOSPeriodicDispatcherTest (2026-01-01).
     private val epochBase: Long = 1_767_225_600_000L
 
     private class NoopListener : BackgrounderEventListener {
         override fun onScheduled(
-            taskId: TaskId,
+            taskId: String,
             request: WorkRequest,
         ) = Unit
 
         override fun onStarted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
         ) = Unit
 
         override fun onCompleted(
-            taskId: TaskId,
+            taskId: String,
             attempt: Int,
             result: WorkResult,
         ) = Unit
 
-        override fun onCancelled(taskId: TaskId) = Unit
+        override fun onCancelled(taskId: String) = Unit
     }
 
     private class Rig(

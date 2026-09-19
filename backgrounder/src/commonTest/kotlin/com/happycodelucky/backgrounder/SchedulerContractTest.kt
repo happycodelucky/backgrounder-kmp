@@ -15,8 +15,8 @@ import kotlin.time.Duration.Companion.seconds
  * own platform-test variants.
  */
 class SchedulerContractTest {
-    private val syncId = TaskId("com.happycodelucky.backgrounder.test.sync")
-    private val uploadId = TaskId("com.happycodelucky.backgrounder.test.upload")
+    private val syncId = "com.happycodelucky.backgrounder.test.sync"
+    private val uploadId = "com.happycodelucky.backgrounder.test.upload"
 
     private fun newScheduler(): Pair<Scheduler, EphemeralRegistry> {
         val ephemeral = EphemeralRegistry(MapSettings())

@@ -14,7 +14,6 @@ Implement the single-method `BackgroundWorker` interface. Workers are *built by 
 
 ```kotlin title="commonMain/SyncWorker.kt"
 import com.happycodelucky.backgrounder.BackgroundWorker
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 
@@ -32,7 +31,7 @@ class SyncWorker(
     }
 
     companion object {
-        val ID = TaskId("dev.example.app.sync")
+        const val ID = "dev.example.app.sync"
     }
 }
 ```

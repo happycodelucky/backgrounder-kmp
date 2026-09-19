@@ -12,8 +12,8 @@ internal class FakeScheduler(
     private val ephemeral: EphemeralRegistry,
 ) : Scheduler {
     private val lock = SynchronizedObject()
-    private val pending: MutableMap<TaskId, WorkRequest> = linkedMapOf()
-    private val attempts: MutableMap<TaskId, Int> = mutableMapOf()
+    private val pending: MutableMap<String, WorkRequest> = linkedMapOf()
+    private val attempts: MutableMap<String, Int> = mutableMapOf()
 
     override fun schedule(
         request: WorkRequest,
@@ -35,7 +35,7 @@ internal class FakeScheduler(
             ScheduleOutcome.Scheduled
         }
 
-    override fun cancel(taskId: TaskId): CancelOutcome =
+    override fun cancel(taskId: String): CancelOutcome =
         synchronized(lock) {
             val removed = pending.remove(taskId) != null
             attempts.remove(taskId)

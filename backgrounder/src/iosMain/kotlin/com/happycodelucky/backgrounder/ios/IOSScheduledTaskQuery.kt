@@ -6,7 +6,6 @@ package com.happycodelucky.backgrounder.ios
 import com.happycodelucky.backgrounder.NetworkRequirement
 import com.happycodelucky.backgrounder.PendingPredicate
 import com.happycodelucky.backgrounder.ScheduledTask
-import com.happycodelucky.backgrounder.TaskId
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.BackgroundTasks.BGTaskRequest
 import platform.BackgroundTasks.BGTaskScheduler
@@ -35,7 +34,7 @@ internal class IOSScheduledTaskQuery(
                     null -> return@mapNotNull null
                 }
             val attempt = state.readAttempt(id)
-            val osPending = pending.containsKey(id.value)
+            val osPending = pending.containsKey(id)
             val state0 =
                 when {
                     osPending -> ScheduledTask.State.Pending
@@ -67,7 +66,7 @@ internal class IOSScheduledTaskQuery(
      * surfacing it is a v2 follow-up gated on a schema bump.
      */
     private fun derivePredicates(
-        taskId: TaskId,
+        taskId: String,
         state0: ScheduledTask.State,
         nextRunHint: Instant?,
         @Suppress("UNUSED_PARAMETER") attempt: Int,
@@ -113,7 +112,4 @@ internal class IOSScheduledTaskQuery(
                 cont.resume(requests.associateBy { it.identifier })
             }
         }
-
-    @Suppress("unused")
-    private fun TaskId.identifierString(): String = value
 }

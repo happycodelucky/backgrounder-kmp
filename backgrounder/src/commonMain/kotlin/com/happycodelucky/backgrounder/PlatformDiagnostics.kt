@@ -17,13 +17,13 @@ import kotlin.native.ObjCName
 @ObjCName(swiftName = "PlatformDiagnostic")
 public sealed interface PlatformDiagnostic {
     /**
-     * **iOS only.** A registered [TaskId] is missing from the app's
+     * **iOS only.** A registered task id is missing from the app's
      * `BGTaskSchedulerPermittedIdentifiers` array in `Info.plist`. iOS will
      * silently refuse to register the OS handler for it, and scheduled work
      * for this id will never fire.
      */
     public data class MissingInfoPlistEntry(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : PlatformDiagnostic
 
     /**

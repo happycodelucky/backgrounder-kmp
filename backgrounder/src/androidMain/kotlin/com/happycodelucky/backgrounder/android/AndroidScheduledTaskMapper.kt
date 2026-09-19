@@ -5,7 +5,6 @@ import androidx.work.WorkInfo
 import com.happycodelucky.backgrounder.NetworkRequirement
 import com.happycodelucky.backgrounder.PendingPredicate
 import com.happycodelucky.backgrounder.ScheduledTask
-import com.happycodelucky.backgrounder.TaskId
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -45,7 +44,7 @@ internal object AndroidScheduledTaskMapper {
      */
     fun toScheduledTask(
         info: WorkInfo,
-        ephemeralIds: Set<TaskId>,
+        ephemeralIds: Set<String>,
     ): ScheduledTask? = fromView(WorkInfoView.from(info), ephemeralIds)
 
     /**
@@ -56,14 +55,14 @@ internal object AndroidScheduledTaskMapper {
      */
     internal fun fromView(
         view: WorkInfoView,
-        ephemeralIds: Set<TaskId>,
+        ephemeralIds: Set<String>,
     ): ScheduledTask? {
         val taskIdString =
             view.tags
                 .firstOrNull { it.startsWith(TASK_ID_TAG_PREFIX) }
                 ?.removePrefix(TASK_ID_TAG_PREFIX)
                 ?: return null
-        val taskId = TaskId(taskIdString)
+        val taskId = taskIdString
         val isPeriodic = view.tags.contains(KIND_PERIODIC_TAG)
         val nextRunHint =
             if (view.nextScheduleTimeMillis > 0L) {

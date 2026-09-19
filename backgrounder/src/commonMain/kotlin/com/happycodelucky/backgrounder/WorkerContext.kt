@@ -11,7 +11,7 @@ package com.happycodelucky.backgrounder
  */
 public class WorkerContext internal constructor(
     /** The stable task id this invocation was dispatched for. */
-    public val taskId: TaskId,
+    public val taskId: String,
     /** 0-based attempt counter. Increments on each [WorkResult.Retry] cycle. */
     public val attempt: Int,
     /** Key/value bag supplied at schedule time via [WorkRequest.input]. */

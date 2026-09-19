@@ -2,7 +2,6 @@ package com.happycodelucky.backgrounder.ios
 
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.EphemeralRegistry
-import com.happycodelucky.backgrounder.TaskId
 import platform.BackgroundTasks.BGTaskScheduler
 
 /**
@@ -21,14 +20,14 @@ internal class IOSEphemeralSweep(
     private val log = Logger.withTag("Backgrounder/iOS/EphemeralSweep")
 
     fun run() {
-        val ids: Set<TaskId> = ephemeral.snapshot()
+        val ids: Set<String> = ephemeral.snapshot()
         if (ids.isEmpty()) {
             log.d { "no ephemeral entries to sweep" }
             return
         }
         log.i { "sweeping ${ids.size} ephemeral request(s)" }
         ids.forEach { id ->
-            BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(id.value)
+            BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(id)
             state.clear(id)
         }
         ephemeral.clear()

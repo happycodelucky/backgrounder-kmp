@@ -19,7 +19,7 @@ package com.happycodelucky.backgrounder
  * the previous in-flight call's `Deferred<R>` (so the previous caller's
  * `await` rethrows `CancellationException`). As a consequence, an
  * implementation only ever holds *one* in-flight entry per `taskId` at a time
- * and may use a single-slot map keyed by `TaskId` rather than a queue.
+ * and may use a single-slot map keyed by task id rather than a queue.
  *
  * **Cancellation.** Caller cancellation flows through structured concurrency:
  * the caller's coroutine is cancelled, the lambda observes `CancellationException`,
@@ -43,7 +43,7 @@ internal interface InstantRunner {
      *   `taskId` pre-empts this call.
      */
     suspend fun <R> run(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R
 
@@ -55,5 +55,5 @@ internal interface InstantRunner {
      * @return `true` if an in-flight call was cancelled; `false` if no such
      *   call existed.
      */
-    fun cancelInFlight(taskId: TaskId): Boolean
+    fun cancelInFlight(taskId: String): Boolean
 }

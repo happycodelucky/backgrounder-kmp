@@ -28,9 +28,9 @@ import kotlin.native.ObjCName
  *   never invents identifiers in your namespace for you. Validated at
  *   [Backgrounder.start] time and reported with a Kermit error if missing.
  *
- *   Periodic tasks ([WorkRequest.Periodic]) no longer need per-`TaskId`
+ *   Periodic tasks ([WorkRequest.Periodic]) no longer need per-task id
  *   Info.plist entries — the tick identifier is the only entry they need.
- *   One-shot tasks ([WorkRequest.OneTime]) still register per-`TaskId` and
+ *   One-shot tasks ([WorkRequest.OneTime]) still register per-task id and
  *   still need their own Info.plist entries.
  *
  * @param eventListener observability hook for `onScheduled`, `onStarted`,
@@ -52,6 +52,7 @@ import kotlin.native.ObjCName
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "create")
+@Throws(IllegalArgumentException::class)
 public fun Backgrounder.Companion.create(
     tickIdentifier: String,
     eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop,

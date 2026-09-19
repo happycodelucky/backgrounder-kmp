@@ -5,11 +5,11 @@ import kotlin.native.ObjCName
 
 /**
  * A user-supplied factory that builds [BackgroundWorker]s for a *set* of
- * [TaskId]s, resolving the concrete worker lazily at dispatch time.
+ * task ids, resolving the concrete worker lazily at dispatch time.
  *
  * This is the bulk alternative to per-id registration
  * ([WorkerRegistry.register] / [Backgrounder.register] taking a single
- * `TaskId` + closure). Register one factory that owns many ids — typically
+ * task id + closure). Register one factory that owns many ids — typically
  * one factory per app module, closing over that module's DI graph.
  *
  * **The [taskIds] / [create] sync contract.** [taskIds] must enumerate
@@ -52,11 +52,11 @@ public interface BackgroundWorkerFactory {
     public val factoryId: String? get() = null
 
     /**
-     * Every [TaskId] this factory can build a worker for. Must stay in sync
+     * Every task id this factory can build a worker for. Must stay in sync
      * with [create] — see the type-level KDoc for the contract.
      */
     @ObjCName(swiftName = "taskIds")
-    public val taskIds: Set<TaskId>
+    public val taskIds: Set<String>
 
     /**
      * Build a fresh [BackgroundWorker] for [taskId], or `null` if this
@@ -67,5 +67,5 @@ public interface BackgroundWorkerFactory {
      * and surfaces as [WorkerRegistry.FactoryDeclinedException].
      */
     @ObjCName(swiftName = "create")
-    public fun create(taskId: TaskId): BackgroundWorker?
+    public fun create(taskId: String): BackgroundWorker?
 }

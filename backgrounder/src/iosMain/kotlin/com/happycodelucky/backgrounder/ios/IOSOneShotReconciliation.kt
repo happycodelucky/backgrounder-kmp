@@ -1,7 +1,6 @@
 package com.happycodelucky.backgrounder.ios
 
 import co.touchlab.kermit.Logger
-import com.happycodelucky.backgrounder.TaskId
 import platform.BackgroundTasks.BGTaskRequest
 import platform.BackgroundTasks.BGTaskScheduler
 
@@ -50,7 +49,7 @@ internal class IOSOneShotReconciliation(
     }
 
     /** Active one-shots known to the store at this instant. */
-    internal fun snapshotCandidates(): List<TaskId> =
+    internal fun snapshotCandidates(): List<String> =
         state
             .knownTaskIds()
             .filter { state.readKind(it) == IOSStateStore.Kind.OneShot && state.readActive(it) }
@@ -61,11 +60,11 @@ internal class IOSOneShotReconciliation(
      * `BGTaskScheduler` query needs a live app host.
      */
     internal fun apply(
-        candidates: List<TaskId>,
+        candidates: List<String>,
         pendingIdentifiers: Set<String>,
     ) {
         candidates
-            .filterNot { it.value in pendingIdentifiers }
+            .filterNot { it in pendingIdentifiers }
             .forEach { id ->
                 log.i { "one-shot $id died with a previous process (no pending OS request); clearing its state" }
                 state.clear(id)

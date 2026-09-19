@@ -7,10 +7,10 @@ import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
 /**
- * The DI seam: resolves a stable [TaskId] to a fresh [BackgroundWorker] per
+ * The DI seam: resolves a stable task id to a fresh [BackgroundWorker] per
  * invocation. Two registration shapes feed it:
  *
- *  - **Per-id**: [register] taking a `TaskId` + closure. One id, one factory
+ *  - **Per-id**: [register] taking a task id + closure. One id, one factory
  *    lambda. The closure closes over the user's DI graph.
  *  - **Bulk**: [register] taking a [BackgroundWorkerFactory]. One factory
  *    object owns many ids and resolves the concrete worker lazily.
@@ -33,7 +33,7 @@ import kotlin.native.ObjCName
 public class WorkerRegistry internal constructor() {
     // MUST NOT call suspend functions inside this block — see CLAUDE.md §3.
     private val lock = SynchronizedObject()
-    private val factories: MutableMap<TaskId, () -> BackgroundWorker> = mutableMapOf()
+    private val factories: MutableMap<String, () -> BackgroundWorker> = mutableMapOf()
     private val factoryChain: MutableList<BackgroundWorkerFactory> = mutableListOf()
     private val sealed = atomic(false)
 
@@ -49,11 +49,12 @@ public class WorkerRegistry internal constructor() {
     @ObjCName(swiftName = "register")
     @Throws(IllegalStateException::class, IllegalArgumentException::class)
     public fun register(
-        taskId: TaskId,
+        taskId: String,
         factory: () -> BackgroundWorker,
     ): Unit =
         synchronized(lock) {
             checkNotSealed()
+            requireValidTaskId(taskId)
             require(taskId !in factories) {
                 "WorkerRegistry: task id '$taskId' is already registered."
             }
@@ -84,6 +85,7 @@ public class WorkerRegistry internal constructor() {
                 "WorkerRegistry: BackgroundWorkerFactory declares no task ids."
             }
             factory.taskIds.forEach { taskId ->
+                requireValidTaskId(taskId)
                 require(taskId !in factories) {
                     "WorkerRegistry: task id '$taskId' is already registered."
                 }
@@ -101,7 +103,7 @@ public class WorkerRegistry internal constructor() {
      * Snapshot — safe to call at any time.
      */
     @ObjCName(swiftName = "registeredIds")
-    public fun registeredIds(): Set<TaskId> =
+    public fun registeredIds(): Set<String> =
         synchronized(lock) {
             buildSet {
                 addAll(factories.keys)
@@ -116,7 +118,7 @@ public class WorkerRegistry internal constructor() {
      *
      * Order is registration order: per-id registrations interleave naturally
      * with bulk factories in the order each appears here, but the public
-     * surface presents per-ids first (sorted by [TaskId.value] for stability)
+     * surface presents per-ids first (sorted by task id for stability)
      * then bulk factories (in registration order) so the inspector output
      * stays deterministic across calls.
      */
@@ -124,7 +126,7 @@ public class WorkerRegistry internal constructor() {
     public fun factoryDescriptors(): List<FactoryDescriptor> =
         synchronized(lock) {
             buildList {
-                factories.keys.sortedBy { it.value }.forEach { id ->
+                factories.keys.sorted().forEach { id ->
                     add(FactoryDescriptor.PerId(taskId = id))
                 }
                 factoryChain.forEach { factory ->
@@ -146,7 +148,7 @@ public class WorkerRegistry internal constructor() {
         }
     }
 
-    internal fun create(taskId: TaskId): BackgroundWorker {
+    internal fun create(taskId: String): BackgroundWorker {
         // Resolve under the lock, invoke OUTSIDE it (B-021). Factories are user
         // code — running them while holding the registry lock serializes every
         // concurrent dispatch behind the slowest factory, and deadlocks if a
@@ -169,7 +171,7 @@ public class WorkerRegistry internal constructor() {
     }
 
     public class NoFactoryRegisteredException(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : IllegalStateException("No BackgroundWorker factory registered for task id '$taskId'")
 
     /**
@@ -179,7 +181,7 @@ public class WorkerRegistry internal constructor() {
      * sync contract.
      */
     public class FactoryDeclinedException(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : IllegalStateException(
             "BackgroundWorkerFactory declared task id '$taskId' but create() returned null for it",
         )

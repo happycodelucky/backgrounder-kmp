@@ -18,7 +18,6 @@ import com.happycodelucky.backgrounder.ScheduleOutcome
 import com.happycodelucky.backgrounder.ScheduledTask
 import com.happycodelucky.backgrounder.Scheduler
 import com.happycodelucky.backgrounder.SchedulerGuarantees
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -43,12 +42,12 @@ internal class BGTaskBackedScheduler(
     private val mutexes: IOSTaskMutexes,
     private val ephemeral: EphemeralRegistry,
     private val emitter: MonitorEventEmitter,
-    // Step 6 cut-over: Periodics no longer have per-`TaskId` BGTaskRequests.
+    // Step 6 cut-over: Periodics no longer have per-task id BGTaskRequests.
     // Instead, scheduling a Periodic writes to state and signals both feeds:
     //  - backgroundFeed.submitNextTick() so iOS's tick request gets refreshed
     //    if this Periodic is now the soonest upcoming nextRunEpochMs;
     //  - foregroundFeed.kick() so the in-process loop re-evaluates its delay.
-    // OneShot scheduling is unchanged — still per-`TaskId` BGTaskRequests.
+    // OneShot scheduling is unchanged — still per-task id BGTaskRequests.
     private val backgroundFeed: IOSBackgroundFeed,
     private val foregroundFeed: IOSForegroundFeed,
     // Injectable so tests can simulate BGTaskScheduler.submit failures —
@@ -77,7 +76,7 @@ internal class BGTaskBackedScheduler(
      */
     internal suspend fun applyResult(
         task: BGTask,
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
         result: WorkResult,
         guard: CompletionGuard,
@@ -94,7 +93,7 @@ internal class BGTaskBackedScheduler(
                 IOSStateStore.Kind.Periodic -> {
                     // Defensive: post step-6 cut-over, periodics flow through
                     // IOSPeriodicDispatcher (driven by the foreground/background
-                    // feeds). Reaching this branch means a per-`TaskId`
+                    // feeds). Reaching this branch means a per-task id
                     // BGTaskScheduler launch handler was registered for a
                     // periodic id (which still happens — registerOne covers all
                     // factory ids defensively) AND iOS dispatched it (which
@@ -120,7 +119,7 @@ internal class BGTaskBackedScheduler(
 
     private fun handleOneShotResult(
         task: BGTask,
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
         result: WorkResult,
         active: Boolean,
@@ -185,11 +184,11 @@ internal class BGTaskBackedScheduler(
      * Documented as a v1 limitation.
      */
     private fun resubmit(
-        taskId: TaskId,
+        taskId: String,
         earliestEpochMs: Long,
     ) {
         val request =
-            BGProcessingTaskRequest(taskId.value).apply {
+            BGProcessingTaskRequest(taskId).apply {
                 earliestBeginDate = epochMsToNSDate(earliestEpochMs)
             }
         when (val outcome = submitRequest(request)) {
@@ -205,7 +204,7 @@ internal class BGTaskBackedScheduler(
      *
      * v2: persist [BackoffPolicy] alongside the rest of the state.
      */
-    private fun backoffPolicyForRetry(taskId: TaskId): BackoffPolicy = BackoffPolicy.exponential()
+    private fun backoffPolicyForRetry(taskId: String): BackoffPolicy = BackoffPolicy.exponential()
 
     // --- Scheduler interface ------------------------------------------------
 
@@ -286,7 +285,7 @@ internal class BGTaskBackedScheduler(
             nextRunEpochMs = nextRun,
             networkRequired = request.constraints.networkRequired,
         )
-        // Step 6 cut-over: no per-`TaskId` BGTaskRequest. The dispatcher decides
+        // Step 6 cut-over: no per-task id BGTaskRequest. The dispatcher decides
         // what runs at each tick; both feeds wake up to consult its
         // soonestUpcomingNextRun().
         //
@@ -304,17 +303,17 @@ internal class BGTaskBackedScheduler(
     }
 
     private fun newOSRequest(
-        taskId: TaskId,
+        taskId: String,
         hint: ExecutionHint,
     ): BGTaskRequest =
         when (hint) {
-            ExecutionHint.Standard -> BGProcessingTaskRequest(taskId.value)
-            is ExecutionHint.Expedited -> BGAppRefreshTaskRequest(taskId.value)
+            ExecutionHint.Standard -> BGProcessingTaskRequest(taskId)
+            is ExecutionHint.Expedited -> BGAppRefreshTaskRequest(taskId)
         }
 
     private fun submit(
         request: BGTaskRequest,
-        taskId: TaskId,
+        taskId: String,
     ): ScheduleOutcome =
         when (val outcome = submitRequest(request)) {
             BGSubmitResult.Success -> {
@@ -342,7 +341,7 @@ internal class BGTaskBackedScheduler(
             }
         }
 
-    override fun cancel(taskId: TaskId): CancelOutcome {
+    override fun cancel(taskId: String): CancelOutcome {
         // Capture kind BEFORE clear() — we need it to decide whether to cancel
         // a per-id BGTaskRequest (one-shots only) and whether to refresh the
         // background feed's tick (periodics only).
@@ -350,8 +349,8 @@ internal class BGTaskBackedScheduler(
         val known = kindBeforeClear != null
 
         if (kindBeforeClear == IOSStateStore.Kind.OneShot) {
-            // One-shots still have a per-`TaskId` BGTaskRequest pending in iOS.
-            BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(taskId.value)
+            // One-shots still have a per-task id BGTaskRequest pending in iOS.
+            BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(taskId)
         }
         // Periodics have no per-id request post-cut-over — the tick handles all.
 
@@ -404,7 +403,7 @@ internal class BGTaskBackedScheduler(
                 .now()
         ids.forEach { id ->
             if (state.readKind(id) == IOSStateStore.Kind.OneShot) {
-                BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(id.value)
+                BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(id)
             }
             state.setActive(id, false)
             state.clear(id)

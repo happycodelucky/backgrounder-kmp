@@ -11,6 +11,7 @@ import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
 import com.happycodelucky.backgrounder.WorkerRegistry
+import com.happycodelucky.backgrounder.requireValidTaskId
 import com.happycodelucky.reachable.Reachability
 import com.russhwolf.settings.NSUserDefaultsSettings
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -35,6 +36,7 @@ internal object IOSBackgrounderBuilder {
         tickIdentifier: String,
         eventListener: BackgrounderEventListener,
     ): Backgrounder {
+        requireValidTaskId(tickIdentifier, what = "tickIdentifier")
         val settings = NSUserDefaultsSettings(NSUserDefaults(suiteName = "com.happycodelucky.backgrounder.shared"))
         val ephemeral = EphemeralRegistry(settings)
         val state = IOSStateStore(settings)

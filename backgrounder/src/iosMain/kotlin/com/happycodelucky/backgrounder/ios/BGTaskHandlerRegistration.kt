@@ -4,7 +4,6 @@
 package com.happycodelucky.backgrounder.ios
 
 import co.touchlab.kermit.Logger
-import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkerRegistry
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.BackgroundTasks.BGTask
@@ -72,7 +71,7 @@ internal class BGTaskHandlerRegistration(
         registry.seal()
     }
 
-    private fun validatePlistIdentifiers(ids: Set<TaskId>) {
+    private fun validatePlistIdentifiers(ids: Set<String>) {
         val permitted =
             NSBundle.mainBundle
                 .objectForInfoDictionaryKey(PLIST_KEY)
@@ -85,7 +84,7 @@ internal class BGTaskHandlerRegistration(
         if (permitted.isEmpty()) {
             log.e {
                 "Info.plist key '$PLIST_KEY' is missing or empty. " +
-                    "Add the Backgrounder tick identifier '$tickIdentifier' (and per-`TaskId` " +
+                    "Add the Backgrounder tick identifier '$tickIdentifier' (and per-task id " +
                     "entries for any one-shot tasks) under this key, or BGTaskScheduler will " +
                     "refuse to dispatch them."
             }
@@ -111,20 +110,20 @@ internal class BGTaskHandlerRegistration(
         // silent dispatch refusal at runtime. For now, the warning above plus
         // iOS's own logging are the diagnostic path.
         ids
-            .filter { it.value !in permitted }
+            .filter { it !in permitted }
             .forEach { missing ->
                 log.w {
-                    "task id '${missing.value}' is not in '$PLIST_KEY'. If you schedule it as " +
+                    "task id '$missing' is not in '$PLIST_KEY'. If you schedule it as " +
                         "WorkRequest.OneTime, iOS will refuse to dispatch it; periodic-only ids " +
                         "do not need their own entry."
                 }
             }
     }
 
-    private fun registerOne(taskId: TaskId) {
+    private fun registerOne(taskId: String) {
         val ok =
             BGTaskScheduler.sharedScheduler.registerForTaskWithIdentifier(
-                identifier = taskId.value,
+                identifier = taskId,
                 usingQueue = null,
             ) { task: BGTask? ->
                 val real =
@@ -140,7 +139,7 @@ internal class BGTaskHandlerRegistration(
     }
 
     private fun resurrectActivePeriodics() {
-        // Step 6 cut-over: periodics no longer have per-`TaskId` BGTaskRequests.
+        // Step 6 cut-over: periodics no longer have per-task id BGTaskRequests.
         // Resurrection collapses to two operations:
         //  1. Re-anchor each active periodic's `nextRunEpochMs` so it's at least
         //     one full interval past `lastRunEpochMs` and never in the past

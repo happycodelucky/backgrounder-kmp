@@ -108,6 +108,7 @@ nav:
   - Installation: installation.md
   - Concepts:
     - concepts/architecture.md
+    - concepts/task-ids.md
     - concepts/worker-context-and-di.md
     - concepts/opportunistic-dispatch.md
     - concepts/pending-predicates.md
@@ -125,6 +126,7 @@ nav:
     - recipes/network-required.md
     - recipes/retry-backoff.md
     - recipes/test-workers.md
+    - recipes/ios-permitted-identifiers.md
   - Platforms:
     - platforms/android.md
     - platforms/ios.md

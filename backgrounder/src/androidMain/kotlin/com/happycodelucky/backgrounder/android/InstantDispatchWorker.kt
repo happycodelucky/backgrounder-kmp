@@ -11,7 +11,7 @@ import androidx.work.ListenableWorker.Result as AndroidResult
 /**
  * The single `CoroutineWorker` that backs `Backgrounder.runNow` on Android.
  *
- * Reads the [TaskId][com.happycodelucky.backgrounder.TaskId] out of `inputData`, looks up
+ * Reads the task id[com.happycodelucky.backgrounder.String] out of `inputData`, looks up
  * the in-flight entry in [PendingInstantCalls], invokes the entry's `task`
  * lambda, and completes the entry's `Deferred` with the result (or the
  * thrown exception). The original `runNow` caller — suspended on

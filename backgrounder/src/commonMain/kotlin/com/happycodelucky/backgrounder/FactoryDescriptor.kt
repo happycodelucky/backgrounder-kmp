@@ -28,19 +28,19 @@ public sealed interface FactoryDescriptor {
     public val factoryId: String?
 
     /** Task ids owned by this factory. Always non-empty. */
-    public val taskIds: Set<TaskId>
+    public val taskIds: Set<String>
 
     /** One closure registered against one task id. */
     public data class PerId(
-        public val taskId: TaskId,
+        public val taskId: String,
     ) : FactoryDescriptor {
         public override val factoryId: String? get() = null
-        public override val taskIds: Set<TaskId> get() = setOf(taskId)
+        public override val taskIds: Set<String> get() = setOf(taskId)
     }
 
     /** A [BackgroundWorkerFactory] object that owns one or more ids. */
     public data class Bulk(
         public override val factoryId: String?,
-        public override val taskIds: Set<TaskId>,
+        public override val taskIds: Set<String>,
     ) : FactoryDescriptor
 }

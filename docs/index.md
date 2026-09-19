@@ -17,7 +17,7 @@ class SyncWorker(private val repo: MyRepository) : BackgroundWorker {
     }
 
     companion object {
-        val ID = TaskId("dev.example.app.sync")
+        const val ID = "dev.example.app.sync"
     }
 }
 

@@ -32,7 +32,7 @@ iOS has no native repeating-task primitive — periodic dispatch is **library-dr
 - **Foreground feed** (in-process loop) fires periodics while the user is in the app. iOS suppresses `BGAppRefreshTaskRequest` for foregrounded apps, so without this loop a periodic whose interval elapsed during a long user session would silently slip past.
 - **Background feed** (single library-owned `BGAppRefreshTaskRequest` tick identifier) wakes the dispatcher when iOS decides the app should refresh — typically when the user has the app installed but hasn't opened it lately. On each wake, the dispatcher walks the persisted scheduling table and runs every periodic that's currently due.
 
-The two feeds coalesce by `TaskId` through a per-task `Mutex`: even if the foreground loop and a background tick race for the same due task, only one cycle's worker runs.
+The two feeds coalesce by task id through a per-task `Mutex`: even if the foreground loop and a background tick race for the same due task, only one cycle's worker runs.
 
 `WorkConstraints` on `Periodic` are **not honored on iOS** — App Refresh ignores `requiresExternalPower` / `requiresNetworkConnectivity`, and the in-process loop has no constraint concept. If your periodic worker needs power/network gating, check inside `execute()` and return `WorkResult.Retry` when conditions aren't met.
 

@@ -31,7 +31,7 @@ public interface BackgrounderEventListener {
     /** Called immediately after [Scheduler.schedule] accepts a [WorkRequest]. */
     @ObjCName(swiftName = "onScheduled")
     public fun onScheduled(
-        taskId: TaskId,
+        taskId: String,
         request: WorkRequest,
     )
 
@@ -42,7 +42,7 @@ public interface BackgrounderEventListener {
      */
     @ObjCName(swiftName = "onStarted")
     public fun onStarted(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
     )
 
@@ -54,36 +54,36 @@ public interface BackgrounderEventListener {
      */
     @ObjCName(swiftName = "onCompleted")
     public fun onCompleted(
-        taskId: TaskId,
+        taskId: String,
         attempt: Int,
         result: WorkResult,
     )
 
     /** Called when [Scheduler.cancel] or [Scheduler.cancelAll] removes this task. */
     @ObjCName(swiftName = "onCancelled")
-    public fun onCancelled(taskId: TaskId)
+    public fun onCancelled(taskId: String)
 
     public companion object {
         /** No-op listener — used as the default when the user binds nothing. */
         public val Noop: BackgrounderEventListener =
             object : BackgrounderEventListener {
                 override fun onScheduled(
-                    taskId: TaskId,
+                    taskId: String,
                     request: WorkRequest,
                 ) = Unit
 
                 override fun onStarted(
-                    taskId: TaskId,
+                    taskId: String,
                     attempt: Int,
                 ) = Unit
 
                 override fun onCompleted(
-                    taskId: TaskId,
+                    taskId: String,
                     attempt: Int,
                     result: WorkResult,
                 ) = Unit
 
-                override fun onCancelled(taskId: TaskId) = Unit
+                override fun onCancelled(taskId: String) = Unit
             }
     }
 }

@@ -34,7 +34,7 @@ import kotlin.time.Duration.Companion.seconds
  * `BGAppRefreshTaskRequest` only fires while the app is **backgrounded** —
  * iOS suppresses it for foregrounded apps (which is why the
  * [IOSForegroundFeed] exists as the in-process counterpart). The two feeds
- * coalesce by `TaskId` through the dispatcher's mutex-then-advance contract:
+ * coalesce by task id through the dispatcher's mutex-then-advance contract:
  * if both feeds happen to fire near the same instant, only one runs each
  * cycle's worker.
  *
@@ -54,7 +54,7 @@ import kotlin.time.Duration.Companion.seconds
  *     the soonest upcoming `nextRunEpochMs`.
  *
  * Note that this feed does **not** dispatch one-shot tasks. One-shots
- * continue to register per-`TaskId` `BGTaskRequest`s and flow through
+ * continue to register per-task id `BGTaskRequest`s and flow through
  * [IOSCoroutineBridge.handle]; the dispatcher pattern is periodic-only.
  */
 internal class IOSBackgroundFeed(

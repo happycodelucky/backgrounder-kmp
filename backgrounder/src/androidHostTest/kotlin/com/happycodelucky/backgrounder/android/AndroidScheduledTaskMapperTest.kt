@@ -2,7 +2,6 @@ package com.happycodelucky.backgrounder.android
 
 import androidx.work.WorkInfo
 import com.happycodelucky.backgrounder.ScheduledTask
-import com.happycodelucky.backgrounder.TaskId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -21,8 +20,8 @@ import kotlin.test.assertTrue
  * didn't exist. This is the rebuild against the now-extracted mapper.
  */
 class AndroidScheduledTaskMapperTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.sync")
-    private val taskIdTag = "${AndroidScheduledTaskMapper.TASK_ID_TAG_PREFIX}${taskId.value}"
+    private val taskId = "com.happycodelucky.backgrounder.test.sync"
+    private val taskIdTag = "${AndroidScheduledTaskMapper.TASK_ID_TAG_PREFIX}$taskId"
 
     private fun view(
         tags: Set<String>,

@@ -3,7 +3,7 @@
 There are two cancel surfaces and they mean different things.
 
 ```kotlin
-// Unified — cancels EVERYTHING for the TaskId: scheduled work AND in-flight runNow.
+// Unified — cancels EVERYTHING for the task id: scheduled work AND in-flight runNow.
 val outcome: CancelOutcome = backgrounder.cancel(SyncWorker.ID)
 
 when (outcome) {

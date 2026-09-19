@@ -22,8 +22,8 @@ import kotlin.test.assertTrue
  * pre-emption forwarding, cancel merge logic) without any platform plumbing.
  */
 class RunNowTest {
-    private val taskId = TaskId("com.happycodelucky.backgrounder.test.runNow")
-    private val otherId = TaskId("com.happycodelucky.backgrounder.test.other")
+    private val taskId = "com.happycodelucky.backgrounder.test.runNow"
+    private val otherId = "com.happycodelucky.backgrounder.test.other"
 
     private fun build(): Triple<Backgrounder, FakeScheduler, FakeInstantRunner> {
         val ephemeral = EphemeralRegistry(MapSettings())

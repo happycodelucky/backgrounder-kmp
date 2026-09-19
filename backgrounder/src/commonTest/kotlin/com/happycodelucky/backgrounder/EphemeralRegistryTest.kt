@@ -11,9 +11,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class EphemeralRegistryTest {
-    private val a = TaskId("com.happycodelucky.backgrounder.test.a")
-    private val b = TaskId("com.happycodelucky.backgrounder.test.b")
-    private val c = TaskId("com.happycodelucky.backgrounder.test.c")
+    private val a = "com.happycodelucky.backgrounder.test.a"
+    private val b = "com.happycodelucky.backgrounder.test.b"
+    private val c = "com.happycodelucky.backgrounder.test.c"
 
     @Test
     fun emptyByDefault() {
@@ -65,7 +65,7 @@ class EphemeralRegistryTest {
             // moderately wide fan-out on a real dispatcher so the worker threads
             // actually contend.
             val registry = EphemeralRegistry(MapSettings())
-            val ids = (0 until 64).map { TaskId("com.happycodelucky.backgrounder.test.t$it") }
+            val ids = (0 until 64).map { "com.happycodelucky.backgrounder.test.t$it" }
             withContext(Dispatchers.Default) {
                 ids
                     .map { id -> async { registry.add(id) } }

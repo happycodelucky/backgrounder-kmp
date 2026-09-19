@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.work.WorkManager
 import co.touchlab.kermit.Logger
 import com.happycodelucky.backgrounder.EphemeralRegistry
-import com.happycodelucky.backgrounder.TaskId
 import java.util.concurrent.TimeUnit
 
 /**
@@ -26,7 +25,7 @@ internal class AndroidEphemeralSweep(
     private val log = Logger.withTag("Backgrounder/EphemeralSweep")
 
     fun run() {
-        val ids: Set<TaskId> = ephemeral.snapshot()
+        val ids: Set<String> = ephemeral.snapshot()
         if (ids.isEmpty()) {
             log.d { "no ephemeral entries to sweep" }
             return
@@ -38,7 +37,7 @@ internal class AndroidEphemeralSweep(
         // WorkManager), then wait against a single shared budget. This caps
         // the cold-start cost at SWEEP_DEADLINE_MS no matter how many ids are
         // pending — vs. SWEEP_DEADLINE_MS × N if we awaited each one.
-        val operations = ids.map { id -> id to workManager.cancelUniqueWork(id.value) }
+        val operations = ids.map { id -> id to workManager.cancelUniqueWork(id) }
         val deadlineNs = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(SWEEP_DEADLINE_MS)
         operations.forEach { (id, op) ->
             val remainingMs = TimeUnit.NANOSECONDS.toMillis((deadlineNs - System.nanoTime()).coerceAtLeast(0L))

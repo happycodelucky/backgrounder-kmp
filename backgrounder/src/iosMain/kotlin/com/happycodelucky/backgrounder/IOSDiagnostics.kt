@@ -11,7 +11,7 @@ import platform.Foundation.NSBundle
  * iOS `actual` for [platformDiagnostics].
  *
  * Two checks today:
- *  1. Every registered [TaskId] must appear in the main bundle's
+ *  1. Every registered task id must appear in the main bundle's
  *     `BGTaskSchedulerPermittedIdentifiers` `Info.plist` array. iOS will
  *     refuse to install the OS handler for any id missing from that array,
  *     and scheduled work for it will silently never fire.
@@ -36,7 +36,7 @@ internal actual fun platformDiagnostics(
 
     val permitted = readPermittedIdentifiers()
     registry.registeredIds().forEach { id ->
-        if (id.value !in permitted) {
+        if (id !in permitted) {
             findings.add(PlatformDiagnostic.MissingInfoPlistEntry(taskId = id))
         }
     }

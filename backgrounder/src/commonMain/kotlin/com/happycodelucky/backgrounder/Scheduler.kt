@@ -48,7 +48,7 @@ internal interface Scheduler {
      * already-running worker on iOS — see [SchedulerGuarantees.cancelsInFlight].
      */
     @ObjCName(swiftName = "cancel")
-    public fun cancel(taskId: TaskId): CancelOutcome
+    public fun cancel(taskId: String): CancelOutcome
 
     /** Cancel every pending request the library knows about. */
     @ObjCName(swiftName = "cancelAll")

@@ -309,6 +309,15 @@ reader would not infer from the code. Capture the **decision** and the
 **Why over the obvious alternative:** A library-managed idle *gate* (like the reachability gate) was rejected — there is no portable "is the device idle?" signal to poll, and idle is an OS-internal fuzzy notion; faking it would be wrong more often than right. Honest advisory + the existing per-platform "check inside `execute()` and return Retry" escape hatch costs one doc paragraph and zero correctness machinery. No `minInterval`/throttle was built (owner descoped it the same session) — opportunistic dispatch already floors frequency.
 **Ref:** `WorkConstraints.kt`, `AndroidConstraintsMapper.kt`, `AndroidScheduledTaskMapper.kt`, `PendingPredicate.kt`, iOS `BGTaskBackedScheduler.applyConstraints`. Docs: `docs/concepts/opportunistic-dispatch.md` (new), `docs/recipes/network-required.md` § "Require the device to be idle".
 
+### D-026 — Task ids are plain `String`s; reverse-DNS is a documented convention, not a rule — 2026-09-18
+**Decision:** Removed the `TaskId` value class. Ids are `String` everywhere; the only checks (non-blank, no surrounding whitespace, no control characters) run in `requireValidTaskId` at each public entry point.
+**Why over the obvious alternative:** K/N exports a value class as its underlying type, so Swift never saw `TaskId` and its `init` validation never ran for Swift callers — the wrapper was Kotlin-only ceremony with a false sense of safety. Neither `BGTaskScheduler` nor WorkManager constrains id shape. Entry-point validation covers both languages once. Pre-release, so no compat cost.
+
+### D-027 — Task-id collection is a bytecode scan in a Gradle plugin, not KSP or a compiler plugin — 2026-09-18
+**Decision:** `:backgrounder-gradle-plugin` reads `@BackgroundTaskId const val` fields from the module's compiled JVM classes with ASM and rewrites the iOS plist array; no code generation.
+**Why over the obvious alternative:** KSP can't read property initializers (only annotation args), so "annotate the val" is impossible there; a compiler plugin reads literals but locks consumers to an exact Kotlin version. `const val` folds into bytecode, so a scan sees the real value (including `"$PREFIX.x"` concatenations) with a stable, Kotlin-version-independent reader. Plugin locates the compile task by name to avoid linking KGP.
+**Ref:** `backgrounder-gradle-plugin/`, `docs/recipes/ios-permitted-identifiers.md`.
+
 ---
 
 ## NEVER DO (N)

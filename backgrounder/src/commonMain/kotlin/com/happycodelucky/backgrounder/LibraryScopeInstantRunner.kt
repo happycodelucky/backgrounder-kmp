@@ -46,7 +46,7 @@ internal class LibraryScopeInstantRunner(
         )
 
     override suspend fun <R> run(
-        taskId: TaskId,
+        taskId: String,
         task: suspend () -> R,
     ): R {
         // Type-erased deferred — `R` is preserved through the closure & the cast on resume.
@@ -89,7 +89,7 @@ internal class LibraryScopeInstantRunner(
         }
     }
 
-    override fun cancelInFlight(taskId: TaskId): Boolean {
+    override fun cancelInFlight(taskId: String): Boolean {
         val entry = pending.take(taskId) ?: return false
         entry.job?.cancel(CancellationException("Backgrounder.cancel($taskId)"))
         entry.deferred.cancel(CancellationException("Backgrounder.cancel($taskId)"))
