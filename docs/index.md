@@ -21,12 +21,12 @@ class SyncWorker(private val repo: MyRepository) : BackgroundWorker {
     }
 }
 
-// At app launch (Backgrounder.shared already exists — no construction step)
-Backgrounder.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
-Backgrounder.shared.start()
+// At app launch (BackgroundTaskManager.shared already exists — no construction step)
+BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+BackgroundTaskManager.shared.start()
 
 // Anywhere later
-Backgrounder.shared.schedule(
+BackgroundTaskManager.shared.schedule(
     WorkRequest.OneTime(
         taskId = SyncWorker.ID,
         constraints = WorkConstraints(networkRequired = NetworkRequirement.Any),
@@ -37,11 +37,11 @@ Backgrounder.shared.schedule(
 
 ## What it does
 
-- **One scheduling API** across platforms — `Backgrounder.schedule()`, `cancel()`, `cancelAll()`, `scheduled()`.
+- **One scheduling API** across platforms — `BackgroundTaskManager.schedule()`, `cancel()`, `cancelAll()`, `scheduled()`.
 - **One worker contract** — `BackgroundWorker.execute(WorkerContext): WorkResult`. Inject your dependencies through the factory closure you register at app launch.
 - **Sealed `WorkRequest`** — `OneTime` and `Periodic`, both with input data, constraints, retry, and an `ephemeral` flag for the "ran-before-init" Android foot-gun.
-- **Instant dispatch** — `Backgrounder.runNow<R>(taskId) { … }` runs a lambda in the background **right now** and suspends until the typed result is back. Bypasses constraints / retries / the registry; routed through the platform's real background primitive so the work survives an immediate app-background.
-- **Honest about platform differences.** `Backgrounder.guarantees()` returns a per-platform truth table you can branch UX on.
+- **Instant dispatch** — `BackgroundTaskManager.runNow<R>(taskId) { … }` runs a lambda in the background **right now** and suspends until the typed result is back. Bypasses constraints / retries / the registry; routed through the platform's real background primitive so the work survives an immediate app-background.
+- **Honest about platform differences.** `BackgroundTaskManager.guarantees()` returns a per-platform truth table you can branch UX on.
 - **No required DI dependency.** Backgrounder doesn't ship a DI module. The factory closure pattern works equally well with Koin, Hilt (Android), kotlin-inject, or hand-wired graphs.
 
 ## Why this exists

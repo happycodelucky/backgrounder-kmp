@@ -3,19 +3,19 @@ package com.happycodelucky.backgrounder.android
 import android.app.Application
 import android.content.Context
 import androidx.work.WorkManager
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.BackgrounderEngine
 import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
-import com.happycodelucky.backgrounder.SharedBackgrounder
+import com.happycodelucky.backgrounder.SharedBackgroundTaskManager
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.russhwolf.settings.SharedPreferencesSettings
 import kotlinx.atomicfu.atomic
 
 /**
- * Constructor-injection wiring for the Android [Backgrounder] graph.
+ * Constructor-injection wiring for the Android [BackgroundTaskManager] graph.
  *
  * Plan §"DI-free initialization" §2.3. Two notable differences from the
  * iOS / macOS builders:
@@ -28,19 +28,19 @@ import kotlinx.atomicfu.atomic
  *  2. The ephemeral sweep runs **eagerly** at construction time — it must
  *     happen before any worker can dispatch (plan §2.3).
  *
- * Each [Backgrounder] owns its own ready-gate `AtomicBoolean`. The
+ * Each [BackgroundTaskManager] owns its own ready-gate `AtomicBoolean`. The
  * gate is shared with the [BackgrounderWorkerFactory] (and therefore with
  * any [RegistryDispatchWorker] WorkManager spins up via that factory), so
  * the worker's "fired before markReady" check sees the same flag the
  * builder controls. `start()` flips it `true`; the gate persists for the
- * process lifetime of this `Backgrounder`.
+ * process lifetime of this `BackgroundTaskManager`.
  */
 internal object AndroidBackgrounderBuilder {
     fun build(
         application: Application,
         eventListener: BackgrounderEventListener,
         suppliedWorkManager: WorkManager?,
-    ): Backgrounder {
+    ): BackgroundTaskManager {
         val settings =
             SharedPreferencesSettings(
                 application.getSharedPreferences("backgrounder.prefs", Context.MODE_PRIVATE),
@@ -95,7 +95,7 @@ internal object AndroidBackgrounderBuilder {
         val factory = BackgrounderWorkerFactory(registry, emitter, readyGate, pendingInstantCalls)
 
         val backgrounder =
-            Backgrounder(
+            BackgroundTaskManager(
                 BackgrounderEngine(
                     registry = registry,
                     scheduler = scheduler,
@@ -118,7 +118,7 @@ internal object AndroidBackgrounderBuilder {
             )
         // Claim the process-wide slot first: if another instance is live this
         // throws before WorkManager is handed a second factory.
-        SharedBackgrounder.install(backgrounder)
+        SharedBackgroundTaskManager.install(backgrounder)
         AndroidBackgrounderInternals.attach(backgrounder, factory, application, registry)
         return backgrounder
     }

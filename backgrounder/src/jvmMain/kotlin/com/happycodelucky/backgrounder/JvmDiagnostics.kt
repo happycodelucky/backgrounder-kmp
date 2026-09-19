@@ -4,7 +4,7 @@ package com.happycodelucky.backgrounder
  * JVM `actual` for [platformDiagnostics]. The coroutine-backed scheduler is
  * in-process — there's no `Info.plist` entry to validate, no Background App
  * Refresh switch, no WorkManager. The only check we share with the other
- * platforms is "has [Backgrounder.start] been called yet?" — same as macOS.
+ * platforms is "has [BackgroundTaskManager.start] been called yet?" — same as macOS.
  */
 internal actual fun platformDiagnostics(
     registry: WorkerRegistry,

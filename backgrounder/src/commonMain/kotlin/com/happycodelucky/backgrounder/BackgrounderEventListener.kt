@@ -13,14 +13,14 @@ import kotlin.native.ObjCName
  * Implementations **must not block or throw** — they're called inline on the
  * dispatcher running the worker.
  *
- * **Prefer [Backgrounder.events] for new code.** The
+ * **Prefer [BackgroundTaskManager.events] for new code.** The
  * `SharedFlow<MonitorEvent>` exposed there carries the same four events plus
  * the richer events the listener does not cover (deferral, skip, attempt
  * failure cause, retry scheduling, library error, schedule replacement). Both
  * channels are fed by a single internal emit point (see
  * [MonitorEventEmitter]) so the listener and the flow stay in lockstep.
  *
- * Pass an implementation to the per-platform `Backgrounder.create(...)`
+ * Pass an implementation to the per-platform `BackgroundTaskManager.create(...)`
  * factory; the default is [Noop].
  *
  * `@OptIn(ExperimentalObjCName::class)`: Swift-rename annotation so callbacks

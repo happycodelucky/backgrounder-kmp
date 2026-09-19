@@ -5,9 +5,9 @@ import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 
 /**
- * The process-wide [Backgrounder] slot behind `Backgrounder.shared`.
+ * The process-wide [BackgroundTaskManager] slot behind `BackgroundTaskManager.shared`.
  *
- * There is at most one live [Backgrounder] per process. The platforms force
+ * There is at most one live [BackgroundTaskManager] per process. The platforms force
  * this: `WorkManager` and `BGTaskScheduler.shared` are process singletons,
  * and a second instance registering the same ids would double-register
  * against them. Making the rule explicit lets every platform bridge find
@@ -15,24 +15,24 @@ import kotlinx.atomicfu.locks.synchronized
  *
  * Population differs per platform:
  *  - **Android** — the `androidx.startup` [BackgrounderInitializer] calls
- *    `Backgrounder.configure(application)` before `Application.onCreate`;
+ *    `BackgroundTaskManager.configure(application)` before `Application.onCreate`;
  *    apps that removed the startup provider call `configure` themselves.
  *  - **iOS / macOS / JVM** — created lazily on first access via
- *    [createDefaultBackgrounder]; explicit `Backgrounder.create(...)`
+ *    [createDefaultBackgrounder]; explicit `BackgroundTaskManager.create(...)`
  *    beforehand wins if the app needs a listener or a custom tick identifier.
  *
- * [Backgrounder.shutdown] releases the slot so a fresh instance can be built,
+ * [BackgroundTaskManager.shutdown] releases the slot so a fresh instance can be built,
  * which is what tests rely on.
  */
-internal object SharedBackgrounder {
+internal object SharedBackgroundTaskManager {
     // MUST NOT call suspend functions inside this block — see CLAUDE.md §3.
     // Reentrant on purpose: get() → createDefaultBackgrounder() → a platform
     // builder → install() all happen under this lock.
     private val lock = SynchronizedObject()
-    private val current = atomic<Backgrounder?>(null)
+    private val current = atomic<BackgroundTaskManager?>(null)
 
     /** The live instance, creating the platform default if none exists. */
-    fun get(): Backgrounder =
+    fun get(): BackgroundTaskManager =
         current.value ?: synchronized(lock) {
             current.value ?: createDefaultBackgrounder().also { created ->
                 // Builders install themselves; a builder that forgot is a library bug.
@@ -43,23 +43,23 @@ internal object SharedBackgrounder {
         }
 
     /** The live instance if one exists, without creating one. */
-    fun peek(): Backgrounder? = current.value
+    fun peek(): BackgroundTaskManager? = current.value
 
     /**
      * Claim the slot for [backgrounder].
      *
      * @throws IllegalStateException if another instance is already live.
      */
-    fun install(backgrounder: Backgrounder): Unit =
+    fun install(backgrounder: BackgroundTaskManager): Unit =
         synchronized(lock) {
             check(current.compareAndSet(expect = null, update = backgrounder)) {
-                "Backgrounder is already configured for this process; only one instance may be live at a time. " +
-                    "Use Backgrounder.shared, or call shutdown() on the existing instance before creating another."
+                "BackgroundTaskManager is already configured for this process; only one instance may be live at a time. " +
+                    "Use BackgroundTaskManager.shared, or call shutdown() on the existing instance before creating another."
             }
         }
 
     /** Release the slot if [backgrounder] holds it. No-op otherwise. */
-    fun release(backgrounder: Backgrounder) {
+    fun release(backgrounder: BackgroundTaskManager) {
         synchronized(lock) {
             current.compareAndSet(expect = backgrounder, update = null)
         }
@@ -78,4 +78,4 @@ internal object SharedBackgrounder {
  * Android has no zero-configuration path (it needs an `Application`) and
  * throws with instructions instead.
  */
-internal expect fun createDefaultBackgrounder(): Backgrounder
+internal expect fun createDefaultBackgrounder(): BackgroundTaskManager

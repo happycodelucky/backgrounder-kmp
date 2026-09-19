@@ -4,7 +4,7 @@ Every task id you schedule as a `WorkRequest.OneTime` on iOS, plus the tick iden
 
 ## 1. Annotate each id that belongs in the plist
 
-This is an iOS-only concern and it says nothing about how the work runs. Two kinds of id belong in the array: the tick identifier, and every id you may schedule as a `WorkRequest.OneTime`. If you rely on the default tick identifier (you never call `Backgrounder.create(tickIdentifier:)`), set `iosBundleIdentifier` in the plugin block instead of annotating anything and the plugin adds `<bundle id>.backgrounder-tick` for you. Periodic ids and `runNow` ids never reach `BGTaskScheduler`, so they don't need it; annotating them anyway is harmless, since a surplus entry costs nothing, while a missing entry means iOS silently never fires the task.
+This is an iOS-only concern and it says nothing about how the work runs. Two kinds of id belong in the array: the tick identifier, and every id you may schedule as a `WorkRequest.OneTime`. If you rely on the default tick identifier (you never call `BackgroundTaskManager.create(tickIdentifier:)`), set `iosBundleIdentifier` in the plugin block instead of annotating anything and the plugin adds `<bundle id>.backgrounder-tick` for you. Periodic ids and `runNow` ids never reach `BGTaskScheduler`, so they don't need it; annotating them anyway is harmless, since a surplus entry costs nothing, while a missing entry means iOS silently never fires the task.
 
 Declare each such id once as a `const val String` and mark it `@BGTaskSchedulerPermittedIdentifier`:
 
@@ -75,7 +75,7 @@ backgrounder {
 
 - **`@BGTaskSchedulerPermittedIdentifier requires a const val String`.** The annotation is on a plain `val`. Only `const` initializers are folded into the class file where the scanner can read them.
 - **`id '…' is declared more than once`.** Two constants carry the same string. Task ids are keys; the build fails so you pick one.
-- **`is blank` / `has leading or trailing whitespace` / `contains control characters`.** The same rules `Backgrounder` enforces at runtime, caught earlier. See [Task ids](../concepts/task-ids.md).
+- **`is blank` / `has leading or trailing whitespace` / `contains control characters`.** The same rules `BackgroundTaskManager` enforces at runtime, caught earlier. See [Task ids](../concepts/task-ids.md).
 - **`does not follow the reverse-DNS convention`.** A warning, not a failure. Set `warnOnNonReverseDns = false` if your ids intentionally use another shape.
 - **`none of compileKotlinJvm, compileAndroidMain, compileKotlin exist`.** The module has no JVM-family target for the scanner to read. Add `jvm()` or an Android target, or point `scanCompileTask` at a task whose output contains the class files.
 - **Ids registered from Swift are invisible.** The scanner only sees Kotlin constants. Workers registered directly from Swift code still need their plist entry by hand, and the runtime check at `start()` remains the backstop for them.

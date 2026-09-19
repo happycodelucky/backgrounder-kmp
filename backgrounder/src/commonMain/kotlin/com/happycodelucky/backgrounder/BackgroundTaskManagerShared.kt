@@ -6,23 +6,23 @@ import kotlin.native.HiddenFromObjC
 import kotlin.native.ObjCName
 
 /**
- * The process-wide [Backgrounder].
+ * The process-wide [BackgroundTaskManager].
  *
  * ```kotlin
- * Backgrounder.shared.register(SyncWorker.ID) { SyncWorker(repo = graph.repository) }
- * Backgrounder.shared.start()
+ * BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = graph.repository) }
+ * BackgroundTaskManager.shared.start()
  * ```
  *
  * - **Android**: populated before `Application.onCreate` by the
  *   `androidx.startup` initializer the library registers in its manifest.
  *   If your app removed the `InitializationProvider`, call
- *   `Backgrounder.configure(application)` first; accessing `shared` before
+ *   `BackgroundTaskManager.configure(application)` first; accessing `shared` before
  *   either has run throws [IllegalStateException] with that instruction.
  * - **iOS / macOS / JVM**: created lazily on first access. Call
- *   `Backgrounder.create(...)` first only if you need a
+ *   `BackgroundTaskManager.create(...)` first only if you need a
  *   [BackgrounderEventListener] or, on iOS, a custom tick identifier.
  *
- * Swift sees this as `Backgrounder.shared` through a wrapper bundled in the
+ * Swift sees this as `BackgroundTaskManager.shared` through a wrapper bundled in the
  * framework. `@HiddenFromObjC` here because Kotlin/Native already exports
  * every companion object with a `shared` accessor of its own, so a Kotlin
  * property of the same name would collide; the wrapper calls [sharedInstance].
@@ -32,12 +32,12 @@ import kotlin.native.ObjCName
  */
 @OptIn(ExperimentalObjCRefinement::class)
 @HiddenFromObjC
-public val Backgrounder.Companion.shared: Backgrounder
-    get() = SharedBackgrounder.get()
+public val BackgroundTaskManager.Companion.shared: BackgroundTaskManager
+    get() = SharedBackgroundTaskManager.get()
 
 /**
  * Objective-C-visible accessor for [shared]. Swift callers use
- * `Backgrounder.shared`, a bundled wrapper over this function; Kotlin callers
+ * `BackgroundTaskManager.shared`, a bundled wrapper over this function; Kotlin callers
  * use the [shared] property. Exists only because the property name collides
  * with Kotlin/Native's generated companion accessor.
  *
@@ -46,4 +46,4 @@ public val Backgrounder.Companion.shared: Backgrounder
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "sharedInstance")
-public fun Backgrounder.Companion.sharedInstance(): Backgrounder = SharedBackgrounder.get()
+public fun BackgroundTaskManager.Companion.sharedInstance(): BackgroundTaskManager = SharedBackgroundTaskManager.get()

@@ -8,7 +8,7 @@ import kotlin.time.Instant
  * A single condition currently preventing a scheduled task from running.
  *
  * Surfaced on [ScheduledTask.pendingPredicates] — operators reading
- * [Backgrounder.scheduled] can see *why* a task isn't running yet, not just
+ * [BackgroundTaskManager.scheduled] can see *why* a task isn't running yet, not just
  * its [ScheduledTask.State]. Multiple predicates can apply at once
  * (e.g. unmet network + in-backoff).
  *

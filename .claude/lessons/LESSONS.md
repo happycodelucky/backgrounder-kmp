@@ -329,6 +329,11 @@ Named after Apple's plist key (not `@BackgroundTaskId`) so nobody reads it as re
 **Why over the obvious alternative:** Android construction can now run from the startup initializer, before `Application.onCreate`; touching `WorkManager` there locks in the default `Configuration` before `Configuration.Provider` runs. Sweeping at `start()` with a fresh snapshot would instead cancel any ephemeral request the app scheduled between construction and `start()`. Snapshot-then-remove closes both holes.
 **Ref:** `AndroidEphemeralSweep.kt`, `IOSEphemeralSweep.kt`, `MacOSBackgrounderBuilder.kt`, `JvmBackgrounderBuilder.kt`.
 
+### D-030 — Entry class is `BackgroundTaskManager`; `Backgrounder` is the library/module name only — 2026-09-19
+**Decision:** Renamed `class Backgrounder` → `BackgroundTaskManager`. Files, tests, and the shared-slot object follow (`SharedBackgroundTaskManager`). Library-branded siblings keep `Backgrounder*` names.
+**Why over the obvious alternative:** Renaming the framework module (`BackgrounderKit`) would have kept `Backgrounder.shared` in Swift but touched KMMBridge, `Package.swift`, and every consumer's `import`. The class rename removes the collision at the source, reads better (`BackgroundTaskManager.shared` says what it is), and keeps the brand on the module where it belongs.
+**Ref:** `BackgroundTaskManager.kt`, T-009.
+
 ---
 
 ## NEVER DO (N)
@@ -448,7 +453,7 @@ match against what they're seeing.
 ### T-009 — Swift sees the `Backgrounder` class as `Backgrounder_` — 2026-09-19
 **Symptom:** Bundled Swift (`src/appleMain/swift`) fails with "cannot find type 'Backgrounder' in scope / cannot use module as a type"; SKIE warns at link time that `class Backgrounder` was renamed to `Backgrounder_` "because of a name collision with the framework name".
 **Cause:** The XCFramework module and the Kotlin class share the name `Backgrounder`. SKIE's apinotes rename the class for Swift, so real Swift consumers write `Backgrounder_`, not the `Backgrounder.companion.create(...)` the docs show.
-**Unstuck by:** Inside bundled Swift, refer to the class as `Backgrounder.Backgrounder_`. Real fix (separate PR): rename the framework module (e.g. `BackgrounderKit`) via the KMMBridge/XCFramework config so the class keeps its name; then the Swift docs become true as written.
+**Unstuck by:** Renamed the class to `BackgroundTaskManager` (D-030); the framework stays `Backgrounder`. Bundled Swift now writes `public extension BackgroundTaskManager` with no qualification. Rule for the future: never give a public type the framework's name.
 
 ### T-008 — Flow collector in runTest's backgroundScope misses the final emission — 2026-06-11
 **Symptom:** A test collecting `Backgrounder.events()` into a list via `backgroundScope.launch { flow.collect { … } }` asserts on the *last* event emitted before idle — and the list is missing exactly that event, intermittently by test shape.

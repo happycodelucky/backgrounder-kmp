@@ -7,7 +7,7 @@ import platform.BackgroundTasks.BGTaskScheduler
 /**
  * Cancels every iOS-side ephemeral request before any handler is registered.
  *
- * Run as the *first* thing inside `Backgrounder.registerHandlers()`. Because
+ * Run as the *first* thing inside `BackgroundTaskManager.registerHandlers()`. Because
  * iOS dispatches a registered handler only after `register(...)` is called
  * for that identifier — and that happens *after* this sweep — no ephemeral
  * handler can ever fire before the sweep completes (stronger guarantee than

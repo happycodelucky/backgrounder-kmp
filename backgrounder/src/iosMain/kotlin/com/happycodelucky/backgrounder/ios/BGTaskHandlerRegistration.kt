@@ -12,7 +12,7 @@ import platform.Foundation.NSBundle
 import kotlin.time.Clock
 
 /**
- * Backs `Backgrounder.start()` on iOS. Run from the iOS builder's `onStart`
+ * Backs `BackgroundTaskManager.start()` on iOS. Run from the iOS builder's `onStart`
  * lambda, which itself runs inside `application(_:didFinishLaunchingWithOptions:)`
  * after every worker factory is registered.
  *
@@ -42,7 +42,7 @@ internal class BGTaskHandlerRegistration(
     private val state: IOSStateStore,
     private val bridge: IOSCoroutineBridge,
     // The library-owned `BGAppRefreshTaskRequest` identifier supplied by the
-    // user at `Backgrounder.create(tickIdentifier:)`. Used both for plist
+    // user at `BackgroundTaskManager.create(tickIdentifier:)`. Used both for plist
     // validation and to register the background feed's launch handler.
     private val tickIdentifier: String,
     private val backgroundFeed: IOSBackgroundFeed,

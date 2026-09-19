@@ -20,7 +20,7 @@ import com.happycodelucky.backgrounder.WorkerRegistry
  * `HiltWorkerFactory`) via `DelegatingWorkerFactory.addFactory(...)`.
  *
  * The user installs this via `Configuration.Provider.workManagerConfiguration`
- * (see `Backgrounder.androidWorkerFactory()` for the user-facing accessor).
+ * (see `BackgroundTaskManager.androidWorkerFactory()` for the user-facing accessor).
  */
 internal class BackgrounderWorkerFactory(
     private val registry: WorkerRegistry,

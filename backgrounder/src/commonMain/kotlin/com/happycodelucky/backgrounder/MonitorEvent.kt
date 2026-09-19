@@ -12,7 +12,7 @@ import kotlin.time.Instant
  *
  * Every internal scheduling, dispatch, deferral, completion, and library-level
  * error path produces one or more [MonitorEvent]s. Consumers observe the stream
- * through [Backgrounder.events] as a `SharedFlow<MonitorEvent>` (Swift sees it
+ * through [BackgroundTaskManager.events] as a `SharedFlow<MonitorEvent>` (Swift sees it
  * as `AsyncSequence<MonitorEvent>` via SKIE), or — for the imperative
  * callback style — implement [BackgrounderEventListener]. Both delivery
  * mechanisms are fed from the same emit point and receive the same events.
@@ -192,7 +192,7 @@ public sealed interface MonitorEvent {
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "CancelSource")
 public sealed interface CancelSource {
-    /** A direct caller invoked [Backgrounder.cancel] or [Backgrounder.cancelAll]. */
+    /** A direct caller invoked [BackgroundTaskManager.cancel] or [BackgroundTaskManager.cancelAll]. */
     public data object User : CancelSource
 
     /** A new schedule with [ConflictPolicy.Replace] displaced this task. */

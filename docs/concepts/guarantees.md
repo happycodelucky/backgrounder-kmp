@@ -1,6 +1,6 @@
 # Guarantees
 
-`Backgrounder.guarantees()` returns a per-platform truth table. UX should branch on it rather than assume parity.
+`BackgroundTaskManager.guarantees()` returns a per-platform truth table. UX should branch on it rather than assume parity.
 
 | Field                       | Android `WorkManager` | iOS 18 `BGTaskScheduler` | macOS 15 `NSBackgroundActivityScheduler` | JVM (library coroutines) |
 | --------------------------- | --------------------- | ------------------------ | ---------------------------------------- | ------------------------ |
@@ -18,7 +18,7 @@ Read carefully:
 - **`survivesForceQuit = false` on iOS.** The single most important caveat. See [Force-quit caveat (iOS)](../platforms/force-quit.md).
 - **All survival flags are `false` on macOS and the JVM.** Both schedule in-process — `NSBackgroundActivityScheduler` registrations and the JVM's coroutine jobs live in your process. When the process exits (quit, force-quit, reboot), every schedule goes with it, and nothing relaunches the app. Re-schedule from your app's init path at next launch.
 - **`honoursWallClock = false` on iOS** means `earliestBeginDate` is a *hint* — the system can defer indefinitely based on opaque heuristics (battery state, usage patterns, Low Power Mode).
-- **`cancelsInFlight = false` on iOS** means `Backgrounder.cancel(taskId)` only kills *pending* requests for scheduled work; a worker already executing on iOS finishes whatever it was doing.
+- **`cancelsInFlight = false` on iOS** means `BackgroundTaskManager.cancel(taskId)` only kills *pending* requests for scheduled work; a worker already executing on iOS finishes whatever it was doing.
 
 ## Process death
 

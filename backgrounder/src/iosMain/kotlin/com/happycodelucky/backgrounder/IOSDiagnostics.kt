@@ -15,7 +15,7 @@ import platform.Foundation.NSBundle
  *     `BGTaskSchedulerPermittedIdentifiers` `Info.plist` array. iOS will
  *     refuse to install the OS handler for any id missing from that array,
  *     and scheduled work for it will silently never fire.
- *  2. The [WorkerRegistry] must be sealed (i.e. [Backgrounder.start] called).
+ *  2. The [WorkerRegistry] must be sealed (i.e. [BackgroundTaskManager.start] called).
  *
  * **Not currently checked.** `UIApplication.backgroundRefreshStatus` would
  * tell us whether the user has disabled Background App Refresh — but that

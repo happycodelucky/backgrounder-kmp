@@ -9,8 +9,8 @@ import kotlin.time.Duration.Companion.seconds
  * A request to schedule background work, identified by a stable task id.
  *
  * Sealed: v1 supports [OneTime] and [Periodic]. Both share an [ephemeral] flag
- * for the cold-launch sweep — see `Backgrounder.attachTo` /
- * `Backgrounder.registerHandlers`.
+ * for the cold-launch sweep — see `BackgroundTaskManager.attachTo` /
+ * `BackgroundTaskManager.registerHandlers`.
  */
 @Serializable
 public sealed interface WorkRequest {

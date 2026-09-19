@@ -39,9 +39,9 @@ class SyncWorkerTest {
 
 ## Asserting against scheduling logic
 
-For code that *schedules* work (rather than the worker body itself), you'll want to test against a `Backgrounder` substitute that records what was scheduled without actually invoking a platform scheduler.
+For code that *schedules* work (rather than the worker body itself), you'll want to test against a `BackgroundTaskManager` substitute that records what was scheduled without actually invoking a platform scheduler.
 
-In v1, the library ships an internal `FakeScheduler` for its own `commonTest` suite. A published `:testing` artifact with a stable, public fake `Backgrounder` or `FakeScheduler` API is **planned for v2** so consumers can use the same fake from their `commonTest`.
+In v1, the library ships an internal `FakeScheduler` for its own `commonTest` suite. A published `:testing` artifact with a stable, public fake `BackgroundTaskManager` or `FakeScheduler` API is **planned for v2** so consumers can use the same fake from their `commonTest`.
 
 Until v2 ships, the practical alternatives are:
 

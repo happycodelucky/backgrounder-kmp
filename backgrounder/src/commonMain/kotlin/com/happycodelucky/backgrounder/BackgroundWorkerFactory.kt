@@ -8,7 +8,7 @@ import kotlin.native.ObjCName
  * task ids, resolving the concrete worker lazily at dispatch time.
  *
  * This is the bulk alternative to per-id registration
- * ([WorkerRegistry.register] / [Backgrounder.register] taking a single
+ * ([WorkerRegistry.register] / [BackgroundTaskManager.register] taking a single
  * task id + closure). Register one factory that owns many ids — typically
  * one factory per app module, closing over that module's DI graph.
  *
@@ -41,7 +41,7 @@ import kotlin.native.ObjCName
 public interface BackgroundWorkerFactory {
     /**
      * Optional human-readable identifier surfaced via
-     * [Backgrounder.registeredFactories]. Useful in inspector dashboards
+     * [BackgroundTaskManager.registeredFactories]. Useful in inspector dashboards
      * for attributing task ids to the owning module / DI scope when one
      * factory manages many ids.
      *

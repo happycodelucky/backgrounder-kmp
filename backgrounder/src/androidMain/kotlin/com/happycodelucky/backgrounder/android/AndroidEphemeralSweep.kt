@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Cancels every pending ephemeral request before any worker can dispatch.
  *
- * Called from `Backgrounder.attachTo(application)` — which runs as the
+ * Called from `BackgroundTaskManager.attachTo(application)` — which runs as the
  * **first line** of `Application.onCreate`, *before* `startKoin` and *before*
  * the user's app graph is available.
  *

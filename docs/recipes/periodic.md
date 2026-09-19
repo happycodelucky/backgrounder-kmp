@@ -36,7 +36,7 @@ The two feeds coalesce by task id through a per-task `Mutex`: even if the foregr
 
 `WorkConstraints` on `Periodic` are **not honored on iOS** — App Refresh ignores `requiresExternalPower` / `requiresNetworkConnectivity`, and the in-process loop has no constraint concept. If your periodic worker needs power/network gating, check inside `execute()` and return `WorkResult.Retry` when conditions aren't met.
 
-The tick identifier must be in `Info.plist` — by default `<bundle id>.backgrounder-tick`, or whatever you passed to `Backgrounder.create(tickIdentifier:)` — see [iOS launch sequence](../platforms/ios.md). Periodic task ids do **not** need their own Info.plist entries (only one-shot ids do).
+The tick identifier must be in `Info.plist` — by default `<bundle id>.backgrounder-tick`, or whatever you passed to `BackgroundTaskManager.create(tickIdentifier:)` — see [iOS launch sequence](../platforms/ios.md). Periodic task ids do **not** need their own Info.plist entries (only one-shot ids do).
 
 State is persisted (`tasks.<id>.kind = "periodic"`, `active = true`, `interval_ms`, `last_run_epoch_ms`, `next_run_epoch_ms`) so a force-quit + cold-launch path can resurrect the schedule on the next `backgrounder.start()` — the dispatcher resubmits a single tick request for the soonest active periodic.
 

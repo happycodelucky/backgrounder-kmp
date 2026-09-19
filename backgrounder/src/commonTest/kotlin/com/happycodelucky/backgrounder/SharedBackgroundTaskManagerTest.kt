@@ -12,13 +12,13 @@ import kotlin.test.assertSame
  * released by `shutdown()`. Platform-specific population (lazy creation,
  * Android's "not configured" error) is covered in the platform test sets.
  */
-class SharedBackgrounderTest {
+class SharedBackgroundTaskManagerTest {
     @AfterTest
-    fun tearDown() = SharedBackgrounder.resetForTests()
+    fun tearDown() = SharedBackgroundTaskManager.resetForTests()
 
-    private fun build(): Backgrounder {
+    private fun build(): BackgroundTaskManager {
         val ephemeral = EphemeralRegistry(MapSettings())
-        return Backgrounder(
+        return BackgroundTaskManager(
             BackgrounderEngine(
                 registry = WorkerRegistry(),
                 scheduler = FakeScheduler(ephemeral),
@@ -33,34 +33,34 @@ class SharedBackgrounderTest {
     @Test
     fun installedInstanceIsShared() {
         val a = build()
-        SharedBackgrounder.install(a)
-        assertSame(a, Backgrounder.shared)
-        assertSame(a, Backgrounder.sharedInstance())
+        SharedBackgroundTaskManager.install(a)
+        assertSame(a, BackgroundTaskManager.shared)
+        assertSame(a, BackgroundTaskManager.sharedInstance())
     }
 
     @Test
     fun secondLiveInstanceIsRejected() {
-        SharedBackgrounder.install(build())
-        assertFailsWith<IllegalStateException> { SharedBackgrounder.install(build()) }
+        SharedBackgroundTaskManager.install(build())
+        assertFailsWith<IllegalStateException> { SharedBackgroundTaskManager.install(build()) }
     }
 
     @Test
     fun shutdownReleasesTheSlot() {
         val a = build()
-        SharedBackgrounder.install(a)
+        SharedBackgroundTaskManager.install(a)
         a.shutdown()
-        assertNull(SharedBackgrounder.peek())
+        assertNull(SharedBackgroundTaskManager.peek())
 
         val b = build()
-        SharedBackgrounder.install(b)
-        assertSame(b, Backgrounder.shared)
+        SharedBackgroundTaskManager.install(b)
+        assertSame(b, BackgroundTaskManager.shared)
     }
 
     @Test
     fun shutdownOfAForeignInstanceLeavesTheSlotAlone() {
         val live = build()
-        SharedBackgrounder.install(live)
+        SharedBackgroundTaskManager.install(live)
         build().shutdown()
-        assertSame(live, SharedBackgrounder.peek())
+        assertSame(live, SharedBackgroundTaskManager.peek())
     }
 }

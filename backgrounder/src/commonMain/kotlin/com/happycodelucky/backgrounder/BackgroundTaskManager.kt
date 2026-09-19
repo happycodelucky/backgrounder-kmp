@@ -12,7 +12,7 @@ import kotlin.native.ObjCName
  *  - scheduling verbs ([schedule], [cancel], [cancelAll], [scheduled],
  *    [guarantees]): the scheduling surface, promoted directly onto the
  *    instance. There is no separate `Scheduler` object to hold — pass the
- *    `Backgrounder` instance itself down the app graph.
+ *    `BackgroundTaskManager` instance itself down the app graph.
  *  - [register]: associate a task id with a factory closure that builds a
  *    fresh `BackgroundWorker` per dispatch.
  *  - [start]: finalize init (seals the registry; iOS/macOS run the ephemeral
@@ -22,17 +22,16 @@ import kotlin.native.ObjCName
  *    Android is a no-op. Safe to call repeatedly.
  *
  * Construct via the per-platform extension factory:
- *   - `androidMain`: [Backgrounder.Companion.create] taking an `Application`.
- *   - `iosMain`: [Backgrounder.Companion.create] (no required args).
- *   - `macosMain`:   [Backgrounder.Companion.create] (no required args).
- *   - `jvmMain`: [Backgrounder.Companion.create] (no required args).
+ *   - `androidMain`: [BackgroundTaskManager.Companion.create] taking an `Application`.
+ *   - `iosMain`: [BackgroundTaskManager.Companion.create] (no required args).
+ *   - `macosMain`:   [BackgroundTaskManager.Companion.create] (no required args).
+ *   - `jvmMain`: [BackgroundTaskManager.Companion.create] (no required args).
  *
  * `@OptIn(ExperimentalObjCName::class)`: standard SKIE annotation; stable in
  * practice and required for boundary refinement (CLAUDE.md §8).
  */
 @OptIn(ExperimentalObjCName::class)
-@ObjCName(swiftName = "Backgrounder")
-public class Backgrounder internal constructor(
+public class BackgroundTaskManager internal constructor(
     private val engine: BackgrounderEngine,
 ) {
     /**
@@ -231,7 +230,7 @@ public class Backgrounder internal constructor(
     ): R {
         requireValidTaskId(taskId)
         check(engine.isStarted) {
-            "Backgrounder.runNow($taskId): start() has not been called yet."
+            "BackgroundTaskManager.runNow($taskId): start() has not been called yet."
         }
         // Pre-empt anything else for this id (in-flight runNow, pending schedule,
         // in-flight scheduled worker). The prior runNow caller — if any — sees
@@ -294,14 +293,14 @@ public class Backgrounder internal constructor(
     public fun shutdown() {
         engine.shutdown()
         // Free the process-wide slot so a fresh instance can be created.
-        SharedBackgrounder.release(this)
+        SharedBackgroundTaskManager.release(this)
     }
 
     /**
      * Companion object exists so per-platform source sets can install
-     * extension entry points: `Backgrounder.shared` (commonMain),
-     * `Backgrounder.configure(application)` (Android), and
-     * `Backgrounder.create(...)` (iOS / macOS / JVM). `commonMain` cannot
+     * extension entry points: `BackgroundTaskManager.shared` (commonMain),
+     * `BackgroundTaskManager.configure(application)` (Android), and
+     * `BackgroundTaskManager.create(...)` (iOS / macOS / JVM). `commonMain` cannot
      * define the constructors itself because the Android variant requires an
      * `Application` and the Apple variants don't — there's no common
      * signature that doesn't leak `Any?`.

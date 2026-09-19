@@ -23,7 +23,7 @@ import kotlin.native.ObjCName
  * must not overlap (factory-vs-factory or factory-vs-per-id) — overlapping
  * registration throws, so resolution is always unambiguous.
  *
- * Register everything at app launch *before* `Backgrounder.start()`. The
+ * Register everything at app launch *before* `BackgroundTaskManager.start()`. The
  * registry is sealed at `start()`; re-registering after that throws.
  *
  * `@OptIn(ExperimentalObjCName::class)`: Swift-rename annotations so iOS app
@@ -40,7 +40,7 @@ public class WorkerRegistry internal constructor() {
     /**
      * Associate [taskId] with a [factory] that builds a fresh [BackgroundWorker] per dispatch.
      *
-     * Must be called before [Backgrounder.start]. Throws if the registry is already sealed or
+     * Must be called before [BackgroundTaskManager.start]. Throws if the registry is already sealed or
      * [taskId] is already claimed by another per-id registration or a [BackgroundWorkerFactory].
      *
      * @throws IllegalStateException if the registry is sealed.
@@ -69,7 +69,7 @@ public class WorkerRegistry internal constructor() {
      * Register a [BackgroundWorkerFactory] that owns the ids in
      * [BackgroundWorkerFactory.taskIds].
      *
-     * Must be called before [Backgrounder.start]. Throws if the registry is already sealed or
+     * Must be called before [BackgroundTaskManager.start]. Throws if the registry is already sealed or
      * any of the factory's ids collide with a per-id registration or another factory.
      *
      * @throws IllegalStateException if the registry is sealed.

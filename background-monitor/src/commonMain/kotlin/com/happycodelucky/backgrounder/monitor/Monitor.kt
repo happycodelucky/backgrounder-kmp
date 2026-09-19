@@ -6,9 +6,9 @@ import kotlin.native.ObjCName
 
 /**
  * Observes every [MonitorEvent] emitted by an attached
- * `com.happycodelucky.backgrounder.Backgrounder`.
+ * `com.happycodelucky.backgrounder.BackgroundTaskManager`.
  *
- * Multiple monitors can attach to one Backgrounder simultaneously — each is
+ * Multiple monitors can attach to one `BackgroundTaskManager` simultaneously — each is
  * driven by an independent collector coroutine on the
  * [kotlinx.coroutines.CoroutineScope] passed to `attachMonitor`. There is
  * no fan-in or shared state between monitors; the [Monitor] instance is the
@@ -36,7 +36,7 @@ import kotlin.native.ObjCName
 @ObjCName(swiftName = "Monitor")
 public interface Monitor {
     /**
-     * Called for every event emitted by the attached Backgrounder while the
+     * Called for every event emitted by the attached `BackgroundTaskManager` while the
      * monitor is attached. Ordering matches the producer's emission order
      * (best-effort per task id; see [MonitorEvent]).
      */

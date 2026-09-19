@@ -1,7 +1,7 @@
 package com.happycodelucky.backgrounder
 
 /**
- * Internal abstraction backing [Backgrounder.runNow]. **Not part of [Scheduler]**
+ * Internal abstraction backing [BackgroundTaskManager.runNow]. **Not part of [Scheduler]**
  * — instant runs intentionally bypass the scheduling pipeline (no
  * [WorkConstraints], no [BackoffPolicy], no [ExecutionHint]).
  *
@@ -14,7 +14,7 @@ package com.happycodelucky.backgrounder
  *    a library-owned `SupervisorJob` scope; shared implementation in
  *    `commonMain`).
  *
- * **Pre-emption invariant.** The contract — enforced by [Backgrounder.runNow] —
+ * **Pre-emption invariant.** The contract — enforced by [BackgroundTaskManager.runNow] —
  * is that calls for the same `taskId` are *last-wins*: each new call cancels
  * the previous in-flight call's `Deferred<R>` (so the previous caller's
  * `await` rethrows `CancellationException`). As a consequence, an
@@ -32,7 +32,7 @@ internal interface InstantRunner {
      * Submit [task] for instant dispatch under [taskId] and suspend until it
      * completes. The lambda runs on a platform-chosen dispatcher. Pre-emption
      * of any prior in-flight `runNow` for the same `taskId` is handled by
-     * [Backgrounder.runNow] *before* this call — implementations may assume
+     * [BackgroundTaskManager.runNow] *before* this call — implementations may assume
      * the slot is clear, but should still defensively replace any leftover
      * entry to be robust against races.
      *
@@ -49,7 +49,7 @@ internal interface InstantRunner {
 
     /**
      * Cancel any in-flight `runNow` for [taskId]. Used by both
-     * [Backgrounder.cancel] (the unified surface) and [Backgrounder.runNow]
+     * [BackgroundTaskManager.cancel] (the unified surface) and [BackgroundTaskManager.runNow]
      * (to enforce pre-emption).
      *
      * @return `true` if an in-flight call was cancelled; `false` if no such

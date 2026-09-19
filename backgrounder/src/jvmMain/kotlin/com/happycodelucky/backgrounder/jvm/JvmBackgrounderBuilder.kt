@@ -1,6 +1,6 @@
 package com.happycodelucky.backgrounder.jvm
 
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.BackgrounderEngine
 import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
@@ -8,14 +8,14 @@ import com.happycodelucky.backgrounder.LibraryScopeInstantRunner
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
-import com.happycodelucky.backgrounder.SharedBackgrounder
+import com.happycodelucky.backgrounder.SharedBackgroundTaskManager
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.happycodelucky.reachable.Reachability
 import com.russhwolf.settings.PreferencesSettings
 import java.util.prefs.Preferences
 
 /**
- * Constructor-injection wiring for the JVM [Backgrounder] graph.
+ * Constructor-injection wiring for the JVM [BackgroundTaskManager] graph.
  *
  * Mirrors `MacOSBackgrounderBuilder` — the JVM graph is the same shape because
  * both schedulers are in-process:
@@ -35,7 +35,7 @@ import java.util.prefs.Preferences
  * scope and the instant runner's.
  */
 internal object JvmBackgrounderBuilder {
-    fun build(eventListener: BackgrounderEventListener): Backgrounder {
+    fun build(eventListener: BackgrounderEventListener): BackgroundTaskManager {
         val settings =
             PreferencesSettings(Preferences.userRoot().node("com.happycodelucky.backgrounder.shared"))
         val ephemeral = EphemeralRegistry(settings)
@@ -54,7 +54,7 @@ internal object JvmBackgrounderBuilder {
         Reachability.shared.isReachable // discarded — read is the warmup side-effect
 
         // Shared emitter — feeds both the v1 listener (for the four v1-shape
-        // events) and the SharedFlow exposed via Backgrounder.events().
+        // events) and the SharedFlow exposed via BackgroundTaskManager.events().
         val emitter = MonitorEventEmitter(eventListener)
 
         val scheduler =
@@ -75,7 +75,7 @@ internal object JvmBackgrounderBuilder {
         // Snapshot at construction so a pre-start ephemeral schedule survives the sweep.
         val leftoverEphemeral = ephemeral.snapshot()
         val backgrounder =
-            Backgrounder(
+            BackgroundTaskManager(
                 BackgrounderEngine(
                     registry = registry,
                     scheduler = scheduler,
@@ -92,7 +92,7 @@ internal object JvmBackgrounderBuilder {
                     },
                 ),
             )
-        SharedBackgrounder.install(backgrounder)
+        SharedBackgroundTaskManager.install(backgrounder)
         return backgrounder
     }
 }

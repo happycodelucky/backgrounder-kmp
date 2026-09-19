@@ -7,7 +7,7 @@ import kotlin.native.ObjCName
 /**
  * Handle to a live monitor subscription.
  *
- * Returned by `Backgrounder.attachMonitor(...)`. Call [detach] to stop
+ * Returned by `BackgroundTaskManager.attachMonitor(...)`. Call [detach] to stop
  * delivering events to the monitor without cancelling the surrounding
  * [kotlinx.coroutines.CoroutineScope]; or let the surrounding scope cancel
  * naturally (e.g. ViewModel teardown) and the subscription tears down with
@@ -29,7 +29,7 @@ public class AttachedMonitor internal constructor(
     /**
      * Stop delivering events to this monitor. Idempotent — second and
      * later calls are no-ops. Does not affect other monitors attached to
-     * the same Backgrounder.
+     * the same `BackgroundTaskManager`.
      */
     @ObjCName(swiftName = "detach")
     public fun detach() {

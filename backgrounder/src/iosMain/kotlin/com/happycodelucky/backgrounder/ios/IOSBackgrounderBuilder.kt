@@ -3,14 +3,14 @@
 
 package com.happycodelucky.backgrounder.ios
 
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.BackgrounderEngine
 import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
-import com.happycodelucky.backgrounder.SharedBackgrounder
+import com.happycodelucky.backgrounder.SharedBackgroundTaskManager
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.happycodelucky.backgrounder.requireValidTaskId
 import com.happycodelucky.reachable.Reachability
@@ -19,7 +19,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSUserDefaults
 
 /**
- * Constructor-injection wiring for the iOS [Backgrounder] graph.
+ * Constructor-injection wiring for the iOS [BackgroundTaskManager] graph.
  *
  * Replaces the Koin module wiring in `backgrounderIOSModule` (plan §"DI-free
  * initialization" §2.1). Each platform piece is constructed in dependency
@@ -36,7 +36,7 @@ internal object IOSBackgrounderBuilder {
     fun build(
         tickIdentifier: String,
         eventListener: BackgrounderEventListener,
-    ): Backgrounder {
+    ): BackgroundTaskManager {
         requireValidTaskId(tickIdentifier, what = "tickIdentifier")
         val settings = NSUserDefaultsSettings(NSUserDefaults(suiteName = "com.happycodelucky.backgrounder.shared"))
         val ephemeral = EphemeralRegistry(settings)
@@ -140,7 +140,7 @@ internal object IOSBackgrounderBuilder {
         val instantRunner = UIBackgroundTaskInstantRunner(pendingInstantCalls)
 
         val backgrounder =
-            Backgrounder(
+            BackgroundTaskManager(
                 BackgrounderEngine(
                     registry = registry,
                     scheduler = scheduler,
@@ -180,7 +180,7 @@ internal object IOSBackgrounderBuilder {
                     },
                 ),
             )
-        SharedBackgrounder.install(backgrounder)
+        SharedBackgroundTaskManager.install(backgrounder)
         return backgrounder
     }
 }

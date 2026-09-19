@@ -7,15 +7,15 @@ import com.happycodelucky.backgrounder.android.AndroidBackgrounderBuilder
 import com.happycodelucky.backgrounder.android.AndroidBackgrounderInternals
 
 /**
- * Android entry point: builds the process-wide [Backgrounder] and installs it
- * as `Backgrounder.shared`.
+ * Android entry point: builds the process-wide [BackgroundTaskManager] and installs it
+ * as `BackgroundTaskManager.shared`.
  *
  * Normally you never call this. The library's manifest registers
  * [BackgrounderInitializer] with `androidx.startup`, which calls it before
  * `Application.onCreate`. Call it yourself only if your app removed the
  * `InitializationProvider`, or if you need a [BackgrounderEventListener] or a
  * pre-resolved `WorkManager` — in which case call it first thing in
- * `onCreate`, before anything touches `Backgrounder.shared`.
+ * `onCreate`, before anything touches `BackgroundTaskManager.shared`.
  *
  * Idempotent with the initializer: if an instance already exists and you
  * pass no listener or `WorkManager`, the existing instance is returned (this
@@ -27,13 +27,13 @@ import com.happycodelucky.backgrounder.android.AndroidBackgrounderInternals
  * class MyApp : Application(), Configuration.Provider {
  *     override fun onCreate() {
  *         super.onCreate()
- *         Backgrounder.shared.register(SyncWorker.ID) { SyncWorker(repo = …) }
- *         Backgrounder.shared.start()
+ *         BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = …) }
+ *         BackgroundTaskManager.shared.start()
  *     }
  *
  *     override val workManagerConfiguration: Configuration get() =
  *         Configuration.Builder()
- *             .setWorkerFactory(Backgrounder.shared.androidWorkerFactory())
+ *             .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
  *             .build()
  * }
  * ```
@@ -50,16 +50,16 @@ import com.happycodelucky.backgrounder.android.AndroidBackgrounderInternals
  *   only if you have one already and want to skip the lazy
  *   `WorkManager.getInstance(application)` lookup. Most callers leave this
  *   `null` and let the library resolve via `getInstance` on first use.
- * @throws IllegalStateException if a [Backgrounder] is already live and a
+ * @throws IllegalStateException if a [BackgroundTaskManager] is already live and a
  *   listener or `WorkManager` was passed.
  */
 @Throws(IllegalStateException::class)
-public fun Backgrounder.Companion.configure(
+public fun BackgroundTaskManager.Companion.configure(
     application: Application,
     eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop,
     workManager: WorkManager? = null,
-): Backgrounder {
-    val existing = SharedBackgrounder.peek()
+): BackgroundTaskManager {
+    val existing = SharedBackgroundTaskManager.peek()
     if (existing != null && eventListener === BackgrounderEventListener.Noop && workManager == null) {
         return existing
     }
@@ -74,11 +74,11 @@ public fun Backgrounder.Companion.configure(
  * Android has no zero-configuration path: building needs an `Application`.
  * Reaching here means neither the startup initializer nor `configure` ran.
  */
-internal actual fun createDefaultBackgrounder(): Backgrounder =
+internal actual fun createDefaultBackgrounder(): BackgroundTaskManager =
     throw IllegalStateException(
-        "Backgrounder.shared is not configured. On Android it is populated by the androidx.startup " +
+        "BackgroundTaskManager.shared is not configured. On Android it is populated by the androidx.startup " +
             "InitializationProvider before Application.onCreate; if your manifest removes that provider, " +
-            "call Backgrounder.configure(application) in Application.onCreate before first use.",
+            "call BackgroundTaskManager.configure(application) in Application.onCreate before first use.",
     )
 
 /**
@@ -103,9 +103,9 @@ internal actual fun createDefaultBackgrounder(): Backgrounder =
  *     .build()
  * ```
  *
- * @throws IllegalStateException if this is not the live `Backgrounder.shared`
- *   instance (e.g. constructed directly via `Backgrounder(engine)` — not
+ * @throws IllegalStateException if this is not the live `BackgroundTaskManager.shared`
+ *   instance (e.g. constructed directly via `BackgroundTaskManager(engine)` — not
  *   normally possible since the constructor is `internal`, but tests
  *   sometimes find a way).
  */
-public fun Backgrounder.androidWorkerFactory(): WorkerFactory = AndroidBackgrounderInternals.workerFactory(this)
+public fun BackgroundTaskManager.androidWorkerFactory(): WorkerFactory = AndroidBackgrounderInternals.workerFactory(this)

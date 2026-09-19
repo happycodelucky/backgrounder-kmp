@@ -10,7 +10,7 @@ import kotlinx.coroutines.Job
  * In-process registry of in-flight `runNow` invocations, keyed by task id.
  *
  * Single-slot per task id: at most one [Entry] exists per id at any time. This
- * is safe because [Backgrounder.runNow] enforces pre-emption (a new `runNow`
+ * is safe because [BackgroundTaskManager.runNow] enforces pre-emption (a new `runNow`
  * for the same task id cancels the previous one before submitting), and
  * [InstantRunner.cancelInFlight] is the only other path that mutates the slot.
  *

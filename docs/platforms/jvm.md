@@ -4,21 +4,21 @@ The JVM target serves desktop apps and server-side processes. There is no OS bac
 
 ```kotlin
 fun main() {
-    // Backgrounder.shared builds itself on first access. Call
-    // Backgrounder.create(eventListener = …) before this line only if you
+    // BackgroundTaskManager.shared builds itself on first access. Call
+    // BackgroundTaskManager.create(eventListener = …) before this line only if you
     // want an event listener.
 
     // 1. Register every worker factory.
-    Backgrounder.shared.register(SyncWorker.ID) {
+    BackgroundTaskManager.shared.register(SyncWorker.ID) {
         SyncWorker(repo = appGraph.repository)
     }
 
     // 2. Start — sweeps ephemeral state and seals the registry.
-    Backgrounder.shared.start()
+    BackgroundTaskManager.shared.start()
 
     // 3. Tear down on exit (or from your UI framework's teardown hook).
     Runtime.getRuntime().addShutdownHook(
-        Thread { Backgrounder.shared.shutdown() },
+        Thread { BackgroundTaskManager.shared.shutdown() },
     )
 }
 ```
@@ -51,4 +51,4 @@ No emulation state machine, no OS coalescing. The scheduler fires once per `inte
 
 ## Shutdown
 
-`backgrounder.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope and the `runNow` runner's. Call it from a JVM shutdown hook (long-running services) or your UI framework's teardown (desktop apps). Without it, in-flight workers run until the JVM exits — harmless for a process that's quitting anyway, but a long-lived embedder (e.g. hosting Backgrounder inside a larger server) should always call `shutdown()`, which also releases the `Backgrounder.shared` slot so a fresh instance can be built.
+`backgrounder.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope and the `runNow` runner's. Call it from a JVM shutdown hook (long-running services) or your UI framework's teardown (desktop apps). Without it, in-flight workers run until the JVM exits — harmless for a process that's quitting anyway, but a long-lived embedder (e.g. hosting Backgrounder inside a larger server) should always call `shutdown()`, which also releases the `BackgroundTaskManager.shared` slot so a fresh instance can be built.

@@ -6,15 +6,15 @@ import kotlin.native.ObjCName
 /**
  * Inspector-shaped view of one registered factory.
  *
- * Returned in a list by [Backgrounder.registeredFactories] so an inspector
+ * Returned in a list by [BackgroundTaskManager.registeredFactories] so an inspector
  * UI can render "which factory owns which task id" without reaching into
  * [WorkerRegistry] directly. Two flavours map onto the two registration
  * shapes the registry supports:
  *
- *  - [PerId] — created from `Backgrounder.register(taskId, factory)`. One
+ *  - [PerId] — created from `BackgroundTaskManager.register(taskId, factory)`. One
  *    closure registered against one id; [factoryId] is `null` because
  *    closures have no name.
- *  - [Bulk] — created from `Backgrounder.register(factory: BackgroundWorkerFactory)`.
+ *  - [Bulk] — created from `BackgroundTaskManager.register(factory: BackgroundWorkerFactory)`.
  *    A [BackgroundWorkerFactory] object owns many ids; [factoryId] mirrors
  *    [BackgroundWorkerFactory.factoryId] (which may itself be `null`).
  *

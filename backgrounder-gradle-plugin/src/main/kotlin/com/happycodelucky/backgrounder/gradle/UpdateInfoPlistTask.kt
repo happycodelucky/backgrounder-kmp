@@ -24,7 +24,7 @@ import org.gradle.api.tasks.UntrackedTask
 @UntrackedTask(because = "edits the iOS Info.plist in place; idempotent and cheap")
 public abstract class UpdateInfoPlistTask : DefaultTask() {
     public companion object {
-        /** Mirrors `DEFAULT_TICK_SUFFIX` in `:backgrounder`'s `Backgrounder.ios.kt`; keep in sync. */
+        /** Mirrors `DEFAULT_TICK_SUFFIX` in `:backgrounder`'s `BackgroundTaskManager.ios.kt`; keep in sync. */
         public const val DEFAULT_TICK_SUFFIX: String = ".backgrounder-tick"
     }
 

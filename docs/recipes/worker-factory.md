@@ -32,7 +32,7 @@ The library invokes `create` afresh on every dispatch — workers are never cach
 - Workers share the same DI graph — close over it once in the factory's constructor.
 - You want worker construction to live next to the worker classes, not at the app's launch site.
 
-For one or two workers, per-id `register(taskId) { worker }` is shorter and clearer. The two registration shapes coexist freely — mix them in the same `Backgrounder`.
+For one or two workers, per-id `register(taskId) { worker }` is shorter and clearer. The two registration shapes coexist freely — mix them in the same `BackgroundTaskManager`.
 
 ## What can go wrong
 

@@ -79,7 +79,7 @@ internal class RegistryDispatchWorker(
             // would resurrect work the app may no longer define.
             if (ephemeral && !ready) {
                 tagged.w {
-                    "fired before Backgrounder.markReady(); ephemeral request purged " +
+                    "fired before BackgroundTaskManager.markReady(); ephemeral request purged " +
                         "(terminal failure — ephemeral work never retries across process death)"
                 }
                 val now = Clock.System.now()

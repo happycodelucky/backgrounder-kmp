@@ -7,7 +7,7 @@ import kotlin.native.ObjCName
  * A configuration or environment issue the library has detected that could
  * stop scheduled work from running.
  *
- * Surfaced from [Backgrounder.diagnostics] so apps can render an "is my
+ * Surfaced from [BackgroundTaskManager.diagnostics] so apps can render an "is my
  * background work going to run?" health check at app launch. Best-effort
  * per platform — each case carries which platform produced it.
  *
@@ -43,7 +43,7 @@ public sealed interface PlatformDiagnostic {
     public data object WorkManagerNotInitialized : PlatformDiagnostic
 
     /**
-     * The library's [WorkerRegistry] has not been sealed — [Backgrounder.start]
+     * The library's [WorkerRegistry] has not been sealed — [BackgroundTaskManager.start]
      * has not been called yet. Until it is, the platform schedulers cannot
      * register OS handlers (iOS) or accept enqueued work (Android).
      */
@@ -51,7 +51,7 @@ public sealed interface PlatformDiagnostic {
 }
 
 /**
- * Result of [Backgrounder.diagnostics] — list of currently-active
+ * Result of [BackgroundTaskManager.diagnostics] — list of currently-active
  * [PlatformDiagnostic]s. An empty list means the library believes the
  * environment is configured correctly.
  */

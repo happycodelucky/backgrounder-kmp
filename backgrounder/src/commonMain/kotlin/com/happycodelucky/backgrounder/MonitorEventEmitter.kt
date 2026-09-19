@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asSharedFlow
  * Two delivery channels fan out from one call to [emit]:
  *  1. The user-supplied [BackgrounderEventListener] callbacks (synchronous,
  *     on the calling thread — preserves the v1 listener contract).
- *  2. The [SharedFlow] exposed via [events] / [Backgrounder.events] (`tryEmit`,
+ *  2. The [SharedFlow] exposed via [events] / [BackgroundTaskManager.events] (`tryEmit`,
  *     non-suspending — a slow collector cannot pin scheduler dispatch).
  *
  * **The legacy `BackgrounderEventListener` only sees the four v1 events**

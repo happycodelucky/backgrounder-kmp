@@ -18,7 +18,7 @@ package com.happycodelucky.backgrounder
  * libraries' identifiers in the same app. See docs/concepts/task-ids.md.
  *
  * Called at every public entry point that accepts an id — [WorkerRegistry.register],
- * [WorkRequest] construction, [Backgrounder.runNow], and the iOS tick identifier —
+ * [WorkRequest] construction, [BackgroundTaskManager.runNow], and the iOS tick identifier —
  * so Swift callers (who bypass Kotlin constructors) are validated too.
  *
  * @throws IllegalArgumentException if [taskId] is blank, has surrounding whitespace, or contains control characters.

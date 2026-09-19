@@ -88,10 +88,10 @@ The library never instantiates your worker by reflection — you give it a facto
 
 ```kotlin
 // Register a single worker
-Backgrounder.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
 
 // Or register many workers at once with a BackgroundWorkerFactory
-Backgrounder.shared.register(appModule.workerFactory())
+BackgroundTaskManager.shared.register(appModule.workerFactory())
 ```
 
 The closure — or factory — is yours: resolve dependencies through Koin, Hilt, kotlin-inject, hand-wired singletons — whatever your app already uses. A fresh worker is built per invocation with all its dependencies wired.
@@ -136,27 +136,27 @@ class MyApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        // 1. Backgrounder.shared already exists: the library's androidx.startup
+        // 1. BackgroundTaskManager.shared already exists: the library's androidx.startup
         //    initializer built it before onCreate ran. If your manifest removes
         //    the InitializationProvider entirely, call
-        //    Backgrounder.configure(application = this) here first.
+        //    BackgroundTaskManager.configure(application = this) here first.
 
         // 2. Register every worker factory. The closure is yours — resolve
         //    dependencies however you like (Koin, Hilt, hand-wired).
-        Backgrounder.shared.register(SyncWorker.ID) {
+        BackgroundTaskManager.shared.register(SyncWorker.ID) {
             SyncWorker(repo = appGraph.repository)
         }
 
         // 3. Start. Sweeps ephemeral work left over from the previous process,
         //    seals the registry, and flips the ready gate so workers enqueued
         //    before this point may now dispatch.
-        Backgrounder.shared.start()
+        BackgroundTaskManager.shared.start()
     }
 
     // Tell WorkManager to use Backgrounder's WorkerFactory. Required.
     override val workManagerConfiguration: Configuration get() =
         Configuration.Builder()
-            .setWorkerFactory(Backgrounder.shared.androidWorkerFactory())
+            .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
             .build()
 }
 ```
@@ -187,12 +187,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions options:
             [UIApplication.LaunchOptionsKey: Any]?,
     ) -> Bool {
-        // 1. Backgrounder.shared builds itself on first access, using the
+        // 1. BackgroundTaskManager.shared builds itself on first access, using the
         //    default tick identifier "<bundle id>.backgrounder-tick" for the
         //    BGAppRefreshTaskRequest that wakes periodic dispatch. To supply an
         //    event listener or your own tick identifier, call
-        //    Backgrounder.companion.create(tickIdentifier:) before this line.
-        let backgrounder = Backgrounder.shared
+        //    BackgroundTaskManager.companion.create(tickIdentifier:) before this line.
+        let backgrounder = BackgroundTaskManager.shared
 
         // 2. Register every worker factory. Resolve dependencies from
         //    whatever DI graph your iOS app uses.
@@ -244,17 +244,17 @@ Use the tick identifier (not the per-task id) to simulate background dispatch of
 ```swift
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // Backgrounder.shared builds itself on first access.
+    // BackgroundTaskManager.shared builds itself on first access.
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Backgrounder.shared.register(taskId: SyncWorker.companion.ID) {
+        BackgroundTaskManager.shared.register(taskId: SyncWorker.companion.ID) {
             SyncWorker(repo: AppGraph.shared.repository)
         }
-        Backgrounder.shared.start()
+        BackgroundTaskManager.shared.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        Backgrounder.shared.shutdown()
+        BackgroundTaskManager.shared.shutdown()
     }
 }
 ```
@@ -287,7 +287,7 @@ iOS-specific: when the user **force-quits the app from the App Switcher**, all b
 `WorkRequest(ephemeral = true)` declares "this work must be re-scheduled by app code after init; do not run it from a state I didn't deliberately put it in." On every cold app start, the library cancels every ephemeral job *before* any worker can dispatch.
 
 Use it when the worker depends on app state initialised after `Application.onCreate` / `application(_:didFinishLaunchingWithOptions:)`. The sweep happens at:
-- **Android**: at the top of `Backgrounder.shared.start()`; leftover ids are snapshotted at construction, before `Application.onCreate`.
+- **Android**: at the top of `BackgroundTaskManager.shared.start()`; leftover ids are snapshotted at construction, before `Application.onCreate`.
 - **iOS / macOS**: top of `backgrounder.start()`.
 
 On Android, the sweep is augmented by a per-instance ready gate: if WorkManager somehow fires an ephemeral worker before `backgrounder.start()` has been called, the worker returns `Failure("dispatched before ephemeralReady")` immediately rather than running with stale state.

@@ -3,10 +3,7 @@
 !!! warning "Read the force-quit caveat first"
     iOS background tasks **stop firing entirely** when the user force-quits the app, until they manually launch it again. See [Force-quit caveat (iOS)](force-quit.md). This is the single most-often-misunderstood thing about iOS background work.
 
-!!! note "Swift class name"
-    The framework module and the `Backgrounder` class currently share a name, so SKIE exposes the class to Swift as `Backgrounder_` (`Backgrounder_.shared`, `Backgrounder_.companion.create(...)`). The snippets below are written for the intended name; a framework-module rename that restores it is tracked in `LESSONS.md` T-009.
-
-The iOS launch sequence is **two steps** — *register*, then *start* — run from `application(_:didFinishLaunchingWithOptions:)` before the launch method returns. `Backgrounder.shared` builds itself on first access; there is nothing to construct or hold.
+The iOS launch sequence is **two steps** — *register*, then *start* — run from `application(_:didFinishLaunchingWithOptions:)` before the launch method returns. `BackgroundTaskManager.shared` builds itself on first access; there is nothing to construct or hold.
 
 ```swift
 @main
@@ -16,12 +13,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions options:
             [UIApplication.LaunchOptionsKey: Any]?,
     ) -> Bool {
-        // 1. Backgrounder.shared builds itself on first access, using the
+        // 1. BackgroundTaskManager.shared builds itself on first access, using the
         //    default tick identifier "<bundle id>.backgrounder-tick" for the
         //    BGAppRefreshTaskRequest that wakes periodic dispatch. To supply an
         //    event listener or your own tick identifier, call
-        //    Backgrounder.companion.create(tickIdentifier:) before this line.
-        let backgrounder = Backgrounder.shared
+        //    BackgroundTaskManager.companion.create(tickIdentifier:) before this line.
+        let backgrounder = BackgroundTaskManager.shared
 
         // 2. Register every worker factory. Resolve dependencies from
         //    whatever DI graph your iOS app uses.
@@ -45,7 +42,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
 You need **at least the tick identifier** plus one entry per `WorkRequest.OneTime` task id you schedule. Periodic task ids do **not** need their own entries — they're driven by the dispatcher through the tick.
 
-The tick identifier defaults to `<bundle id>.backgrounder-tick` (`Backgrounder.companion.defaultTickIdentifier()` returns the exact string). Apps that call `Backgrounder.companion.create(tickIdentifier:)` use whatever they passed instead.
+The tick identifier defaults to `<bundle id>.backgrounder-tick` (`BackgroundTaskManager.companion.defaultTickIdentifier()` returns the exact string). Apps that call `BackgroundTaskManager.companion.create(tickIdentifier:)` use whatever they passed instead.
 
 ```xml
 <key>BGTaskSchedulerPermittedIdentifiers</key>

@@ -5,7 +5,7 @@ import android.content.Context
 import androidx.startup.Initializer
 
 /**
- * `androidx.startup` initializer that populates `Backgrounder.shared` before
+ * `androidx.startup` initializer that populates `BackgroundTaskManager.shared` before
  * `Application.onCreate` runs. Registered in the library's manifest, so a
  * consumer that keeps the `InitializationProvider` gets it for free.
  *
@@ -15,12 +15,12 @@ import androidx.startup.Initializer
  * the ephemeral sweep runs inside `start()`, after `Configuration.Provider`
  * has had its chance to install our `WorkerFactory`.
  *
- * Idempotent with an explicit `Backgrounder.configure(application)` call —
+ * Idempotent with an explicit `BackgroundTaskManager.configure(application)` call —
  * whichever runs first wins.
  */
-public class BackgrounderInitializer : Initializer<Backgrounder> {
-    override fun create(context: Context): Backgrounder =
-        SharedBackgrounder.peek() ?: Backgrounder.configure(application = context.applicationContext as Application)
+public class BackgrounderInitializer : Initializer<BackgroundTaskManager> {
+    override fun create(context: Context): BackgroundTaskManager =
+        SharedBackgroundTaskManager.peek() ?: BackgroundTaskManager.configure(application = context.applicationContext as Application)
 
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }

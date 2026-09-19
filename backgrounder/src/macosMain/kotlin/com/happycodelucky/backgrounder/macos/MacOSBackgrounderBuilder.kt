@@ -3,7 +3,7 @@
 
 package com.happycodelucky.backgrounder.macos
 
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import com.happycodelucky.backgrounder.BackgrounderEngine
 import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
@@ -11,7 +11,7 @@ import com.happycodelucky.backgrounder.LibraryScopeInstantRunner
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
-import com.happycodelucky.backgrounder.SharedBackgrounder
+import com.happycodelucky.backgrounder.SharedBackgroundTaskManager
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.happycodelucky.reachable.Reachability
 import com.russhwolf.settings.NSUserDefaultsSettings
@@ -19,7 +19,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSUserDefaults
 
 /**
- * Constructor-injection wiring for the macOS [Backgrounder] graph.
+ * Constructor-injection wiring for the macOS [BackgroundTaskManager] graph.
  *
  * Replaces the Koin module wiring in `backgrounderMacOSModule` (plan §"DI-free
  * initialization" §2.2). The macOS graph is shorter than iOS's because
@@ -34,7 +34,7 @@ import platform.Foundation.NSUserDefaults
  * `shutdown()` cancels the scheduler's [kotlinx.coroutines.SupervisorJob]-rooted scope.
  */
 internal object MacOSBackgrounderBuilder {
-    fun build(eventListener: BackgrounderEventListener): Backgrounder {
+    fun build(eventListener: BackgrounderEventListener): BackgroundTaskManager {
         val settings = NSUserDefaultsSettings(NSUserDefaults(suiteName = "com.happycodelucky.backgrounder.shared"))
         val ephemeral = EphemeralRegistry(settings)
         val registry = WorkerRegistry()
@@ -52,7 +52,7 @@ internal object MacOSBackgrounderBuilder {
         Reachability.shared.isReachable // discarded — read is the warmup side-effect
 
         // Shared emitter — feeds both the v1 listener (for the four v1-shape
-        // events) and the SharedFlow exposed via Backgrounder.events().
+        // events) and the SharedFlow exposed via BackgroundTaskManager.events().
         val emitter = MonitorEventEmitter(eventListener)
 
         val scheduler =
@@ -74,7 +74,7 @@ internal object MacOSBackgrounderBuilder {
         // Snapshot at construction so a pre-start ephemeral schedule survives the sweep.
         val leftoverEphemeral = ephemeral.snapshot()
         val backgrounder =
-            Backgrounder(
+            BackgroundTaskManager(
                 BackgrounderEngine(
                     registry = registry,
                     scheduler = scheduler,
@@ -91,7 +91,7 @@ internal object MacOSBackgrounderBuilder {
                     },
                 ),
             )
-        SharedBackgrounder.install(backgrounder)
+        SharedBackgroundTaskManager.install(backgrounder)
         return backgrounder
     }
 }

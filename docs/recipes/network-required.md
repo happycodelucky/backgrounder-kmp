@@ -112,7 +112,7 @@ The library reads `Reachability.shared` directly — there is no Backgrounder-si
 // commonTest — depends on libs.reachable.testing.
 @Test fun retriesWhenOffline() = runTest {
     withFakeReachability(initial = ReachabilityStatus.Unknown) { fake ->
-        val backgrounder = Backgrounder.create(
+        val backgrounder = BackgroundTaskManager.create(
             tickIdentifier = "com.example.app.tick",
             eventListener = events,
         )
@@ -133,7 +133,7 @@ The library reads `Reachability.shared` directly — there is no Backgrounder-si
 
 `withFakeReachability` restores the previous override (typically the production singleton) on exit, even on exception. Nested calls are LIFO-safe by construction. See the [reachable-testing module](https://github.com/happycodelucky/reachable/tree/main/reachable-testing) for the full driver API (`setReachable`, `setTransport`, `setDataMetered`, `reset`, `closeCallCount`, `wasClosed`).
 
-Backgrounder's public `Backgrounder.create(...)` factory has no `reachability:` parameter on either platform — the install hook is the *only* path. This keeps the Swift surface clean (no reachable types leak into Backgrounder's framework) and matches how every other consumer of `Reachability.shared` is tested.
+Backgrounder's public `BackgroundTaskManager.create(...)` factory has no `reachability:` parameter on either platform — the install hook is the *only* path. This keeps the Swift surface clean (no reachable types leak into Backgrounder's framework) and matches how every other consumer of `Reachability.shared` is tested.
 
 ## Common pitfalls
 
