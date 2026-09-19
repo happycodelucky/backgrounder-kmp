@@ -86,21 +86,45 @@ class UploadWorker(...) : BackgroundWorker {
 
 Periodic work and `runNow` never touch `BGTaskScheduler` and need no entry. If you'd rather maintain the plist yourself, the required entries are the tick identifier (`<bundle id>.backgrounder-tick` by default) plus one per one-shot id; the library logs an error at `start()` when the tick is missing and a warning for each registered id that is. See [Generate the iOS permitted identifiers](https://happycodelucky.github.io/backgrounder-kmp/recipes/ios-permitted-identifiers/).
 
-### 3. Android manifest
+### 3. Android: `Configuration.Provider` and the manifest
 
-Backgrounder installs its own `WorkerFactory`, which requires your `Application` to implement `Configuration.Provider` and WorkManager's auto-init to be disabled. Remove only WorkManager's initializer; Backgrounder's own startup initializer rides on the same provider:
+Backgrounder builds your workers through its own `WorkerFactory`. WorkManager only accepts a custom factory from an `Application` that implements `Configuration.Provider`, so declare it there:
+
+```kotlin
+// Implement Configuration.Provider so WorkManager asks *you* for its setup
+// instead of initialising itself with defaults.
+class MyApp : Application(), Configuration.Provider {
+
+    // WorkManager calls this once, the first time anything touches
+    // WorkManager.getInstance(). It must return Backgrounder's factory, or
+    // WorkManager can't construct your BackgroundWorkers.
+    override val workManagerConfiguration: Configuration get() =
+        Configuration.Builder()
+            // BackgroundTaskManager.shared already exists here: the library's
+            // androidx.startup initializer built it before onCreate ran.
+            .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
+            .build()
+}
+```
+
+Implementing `Configuration.Provider` also requires disabling WorkManager's automatic initialisation in `AndroidManifest.xml`, otherwise it initialises with defaults before `onCreate` and never asks you. Remove only WorkManager's entry: Backgrounder's own startup initializer, the thing that creates `BackgroundTaskManager.shared`, rides on the same provider:
 
 ```xml
+<!-- Merge into androidx.startup's provider rather than replacing it, so
+     initializers registered by libraries (including Backgrounder's) survive. -->
 <provider
     android:name="androidx.startup.InitializationProvider"
     android:authorities="${applicationId}.androidx-startup"
     tools:node="merge">
+    <!-- Drop only WorkManager's initializer. -->
     <meta-data
         android:name="androidx.work.WorkManagerInitializer"
         android:value="androidx.startup"
         tools:node="remove" />
 </provider>
 ```
+
+If your app removes the provider entirely, call `BackgroundTaskManager.configure(application = this)` at the top of `onCreate` instead.
 
 ---
 
@@ -165,13 +189,24 @@ There is one `BackgroundTaskManager` per process, `BackgroundTaskManager.shared`
 **Android** — `shared` already exists when `onCreate` runs (built by the startup initializer):
 
 ```kotlin
+// Configuration.Provider is required: see "Android: Configuration.Provider and
+// the manifest" under Installation for what it does and the manifest entry.
 class MyApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
+
+        // Register a factory for every worker. The closure runs on each
+        // dispatch and builds a fresh worker, resolving dependencies from
+        // whatever DI graph you use (Koin, Hilt, hand-wired).
         BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+
+        // Start: sweeps ephemeral work left over from the previous process,
+        // seals the registry (no more register calls), and lets any work
+        // WorkManager already has queued dispatch to your workers.
         BackgroundTaskManager.shared.start()
     }
 
+    // Hand WorkManager the factory that knows how to build your workers.
     override val workManagerConfiguration: Configuration get() =
         Configuration.Builder()
             .setWorkerFactory(BackgroundTaskManager.shared.androidWorkerFactory())
@@ -184,15 +219,29 @@ class MyApp : Application(), Configuration.Provider {
 ```swift
 func application(_ application: UIApplication,
                  didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    BackgroundTaskManager.shared.register(taskId: SyncWorker.companion.ID) {
+    // First access builds the instance, using "<bundle id>.backgrounder-tick"
+    // as the BGAppRefreshTaskRequest identifier that wakes periodic work. To
+    // pass your own tick identifier or an event listener, call
+    // BackgroundTaskManager.companion.create(tickIdentifier:) before this line.
+    let manager = BackgroundTaskManager.shared
+
+    // Register a factory for every worker; the closure builds a fresh worker
+    // per dispatch from your iOS app's DI graph.
+    manager.register(taskId: SyncWorker.companion.ID) {
         SyncWorker(repo: AppGraph.shared.repository)
     }
-    BackgroundTaskManager.shared.start()
+
+    // Start: sweeps ephemeral work, registers the BGTaskScheduler launch
+    // handlers (the tick plus one per one-shot id), starts the in-process
+    // loop that fires periodics while the app is foregrounded, and resumes
+    // any periodic schedule persisted by a previous launch. iOS requires the
+    // handlers to be registered before this method returns.
+    manager.start()
     return true
 }
 ```
 
-**macOS and JVM** — the same two calls from `applicationDidFinishLaunching` or `main()`, plus `BackgroundTaskManager.shared.shutdown()` on exit.
+**macOS and JVM** — the same two calls from `applicationDidFinishLaunching` or `main()`, plus `BackgroundTaskManager.shared.shutdown()` on exit to cancel the library-owned coroutine scopes.
 
 The factory closure is where DI happens: resolve from Koin, Hilt, kotlin-inject, or hand-wired singletons. To register a whole module's workers at once, pass a `BackgroundWorkerFactory`. Then schedule from anywhere in your code as shown above.
 
