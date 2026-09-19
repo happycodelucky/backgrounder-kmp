@@ -188,7 +188,7 @@ class MonitorEventEmitterTest {
                         reason =
                             DeferralReason.ReachabilityTimeout(
                                 requirement = NetworkRequirement.Any,
-                                budget = 5.seconds,
+                                waited = 5.seconds,
                             ),
                     ),
                     MonitorEvent.WorkCompleted(taskId, now, 0, WorkResult.Retry, 1.seconds),

@@ -41,6 +41,10 @@ review checklist. Entries below are the wider set of bugs that have actually
 landed in this repo — review-catalogue items are listed here as well so a
 single grep finds them.
 
+### B-032 — Reachability gate quartered the budget twice → ¼ of the documented wait — 2026-09-24
+**Cause:** `gateBudgetFor(capabilities)` returned `min(5s, maxExecutionTime/4)` and every call site (macOS, both iOS dispatchers, JVM `CoroutineBackedScheduler`) passed *that* to `awaitReachable(_, budget)`, which quartered + clamped again. macOS's 5-minute and JVM's `INFINITE` budgets both waited 1.25s, not the 5s the docs promise; `ReachabilityTimeout.budget` reported the once-quartered value, hiding it.
+**Fix:** Deleted `gateBudgetFor`; call sites pass raw `maxExecutionTime`, `awaitReachable` owns the only quartering and returns it as `GateResult.TimedOut(waited)` → `ReachabilityTimeout.waited` (renamed from `budget`). Docs were right; code was wrong. Test: `ReachabilityGateTest.fiveMinuteMacOSBudgetWaitsFullMaxWaitEndToEnd`.
+
 ### B-031 — Android AAR bytecode followed the build JDK, not the pinned JVM target — 2026-09-23
 **Cause:** `jvmTarget` was set via `targets.withType<KotlinJvmTarget>()`, which never matches the AGP KMP `android {}` target, so the AAR inherited the build JDK's level (a `JVM_17` flip moved `jvm` classes to 61; `android` stayed 65). The build-script comment claimed the android block pinned it.
 **Fix:** One `jvm-target` catalog key → `jvmBytecodeTarget`, set in both `jvm { compilerOptions }` and `android { compilerOptions }` in each KMP module. Prove with a flip + class-file majors.

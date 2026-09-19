@@ -209,10 +209,15 @@ public sealed interface DeferralReason {
     /**
      * The reachability gate timed out waiting for the configured
      * [WorkConstraints.networkRequired] to be satisfied.
+     *
+     * [waited] is the effective wait window the gate held the dispatch for
+     * before giving up — `min(5.seconds, maxExecutionTime / 4)`, the same
+     * value the platform docs quote. It is the real hold time, **not** the
+     * raw per-invocation execution budget.
      */
     public data class ReachabilityTimeout(
         public val requirement: NetworkRequirement,
-        public val budget: Duration,
+        public val waited: Duration,
     ) : DeferralReason
 
     /** A periodic tick fired but no task was due to run. */
