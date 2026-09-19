@@ -58,6 +58,26 @@ Backgrounder pulls `kotlinx.coroutines`, `kotlinx.serialization`,
 internally and a factory-closure seam for user code, so any DI graph you
 already use plugs in cleanly.
 
+## Gradle plugin (optional)
+
+The `com.happycodelucky.backgrounder` Gradle plugin keeps the iOS
+`BGTaskSchedulerPermittedIdentifiers` array in sync with the
+`@BackgroundTaskId` constants in your shared module. Apply it to the module
+that declares your workers:
+
+```kotlin
+plugins {
+    id("com.happycodelucky.backgrounder") version "{{ version }}"
+}
+
+backgrounder {
+    iosInfoPlist = file("../iOSApp/App/Info.plist")
+}
+```
+
+It resolves from Maven Central alongside the library. See
+[Generate the iOS permitted identifiers](recipes/ios-permitted-identifiers.md).
+
 ## Android-only consumer
 
 If your app is Android-only (not a KMP project), depend on the published

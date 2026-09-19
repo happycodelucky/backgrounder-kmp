@@ -8,6 +8,7 @@
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.android.kotlin.multiplatform.library) apply false
     alias(libs.plugins.skie) apply false
@@ -34,6 +35,9 @@ subprojects {
     // ktlint wires onto whichever Kotlin plugin is present. CLAUDE.md §3:
     // "ktlint + detekt must pass."
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    }
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
         apply(plugin = "org.jlleitschuh.gradle.ktlint")
     }
 
