@@ -22,7 +22,6 @@ import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
-import com.happycodelucky.backgrounder.gateBudgetFor
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineDispatcher
@@ -367,16 +366,19 @@ internal class CoroutineBackedScheduler(
 
         // ── Reachability gate (D-003). The JVM has no OS constraint concept,
         // so without this gate `WorkConstraints.networkRequired` would be
-        // silently ignored — exactly the macOS situation. On timeout, treat as
-        // `Retry` so the one-shot backoff loop / periodic next-cycle handles
-        // rescheduling.
-        val gateBudget = gateBudgetFor(ctx.capabilities)
-        val gateResult = gate.awaitReachable(request.constraints.networkRequired, gateBudget)
+        // silently ignored — exactly the macOS situation. Pass the RAW
+        // per-invocation budget; the gate owns the single `min(5s, budget/4)`
+        // quartering and reports the effective wait it used (see B-028). With
+        // the JVM's INFINITE budget that resolves to MAX_WAIT (5s). On timeout,
+        // treat as `Retry` so the one-shot backoff loop / periodic next-cycle
+        // handles rescheduling.
+        val gateResult =
+            gate.awaitReachable(request.constraints.networkRequired, ctx.capabilities.maxExecutionTime)
         val result =
             if (gateResult is ReachabilityGate.GateResult.TimedOut) {
                 log.i {
                     "[${request.taskId}] reachability gate timed out " +
-                        "(requirement=${request.constraints.networkRequired}, budget=$gateBudget); " +
+                        "(requirement=${request.constraints.networkRequired}, waited=${gateResult.waited}); " +
                         "skipping worker, deferring as Retry"
                 }
                 emitter.emit(
@@ -387,7 +389,7 @@ internal class CoroutineBackedScheduler(
                         reason =
                             DeferralReason.ReachabilityTimeout(
                                 requirement = request.constraints.networkRequired,
-                                budget = gateBudget,
+                                waited = gateResult.waited,
                             ),
                     ),
                 )
@@ -532,9 +534,10 @@ internal class CoroutineBackedScheduler(
     private companion object {
         /**
          * The JVM process is fully ours — no OS scheduler grants or reclaims
-         * background time, so there is no execution budget to report.
-         * `gateBudgetFor` clamps the reachability wait at its own 5-second cap
-         * (`min(MAX_WAIT, INFINITE / 4)` picks `MAX_WAIT`).
+         * background time, so there is no execution budget to report. The
+         * reachability gate receives this raw `INFINITE` budget and clamps its
+         * own wait at the 5-second cap (`min(MAX_WAIT, INFINITE / 4)` picks
+         * `MAX_WAIT`).
          */
         private val JVM_CAPABILITIES =
             PlatformCapabilities(

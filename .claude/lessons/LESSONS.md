@@ -176,6 +176,11 @@ single grep finds them.
 **Fix:** All three flags `false`, with the in-process rationale at the declaration; `docs/concepts/guarantees.md` table corrected.
 **Ref:** `NSBackgroundActivityBackedScheduler.kt::MACOS_GUARANTEES`.
 
+### B-028 — Reachability gate double-quartered the budget → ¼ the documented wait — 2026-09-19
+**Cause:** `gateBudgetFor(capabilities)` computed `min(5s, maxExecutionTime/4)` and every call site (macOS, both iOS dispatchers, JVM `CoroutineBackedScheduler`) passed *that* into `ReachabilityGate.awaitReachable(_, budget)`, which quartered + clamped again (`min(MAX_WAIT, budget/4)`). A 5-minute macOS budget gave a 1.25s effective wait — and the JVM's `INFINITE` budget collapsed the same way — not the `min(5s, budget/4)` = 5s the docs (`platforms/{macos,jvm}.md`, `concepts/guarantees.md`, `recipes/network-required.md`) promise. The `AttemptDeferred` payload reported the *pre-second-quartering* value, masking the gap.
+**Fix:** Deleted `gateBudgetFor`; call sites pass the RAW `capabilities.maxExecutionTime` and `awaitReachable` owns the single quartering. The wait it used rides back out on `GateResult.TimedOut(waited)` and into `DeferralReason.ReachabilityTimeout.waited` (renamed from `budget` — it was always the hold time, never the execution budget). Docs already described the intended single-quartering; only the code was wrong. Applies a lesson like B-022: a formula fix must reach **every** call site — here the JVM site added later re-introduced the same double-quartering.
+**Ref:** `ReachabilityGate.kt`, `NSBackgroundActivityBackedScheduler.kt`, `IOSPeriodicDispatcher.kt`, `IOSCoroutineBridge.kt`, `jvm/CoroutineBackedScheduler.kt`. Test: `ReachabilityGateTest.fiveMinuteMacOSBudgetWaitsFullMaxWaitEndToEnd`.
+
 ---
 
 ## Novel design decisions (D)
