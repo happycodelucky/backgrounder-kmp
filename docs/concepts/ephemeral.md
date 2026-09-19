@@ -18,18 +18,18 @@ Without protection, the worker tries to resolve dependencies against a half-init
 
 | Platform | "Cold start" means                              | Sweep timing                            |
 | -------- | ----------------------------------------------- | --------------------------------------- |
-| Android  | `Application.onCreate` is running for a fresh process. | Inside `Backgrounder.create(application)` — the constructor runs the sweep eagerly before returning. |
-| iOS      | A new process invocation of `application(_:didFinishLaunchingWithOptions:)`. | Top of `backgrounder.start()` (before any `BGTaskScheduler.register(...)`). |
-| macOS    | A new process invocation of `applicationDidFinishLaunching`. | Top of `backgrounder.start()` (same as iOS). |
-| JVM      | A new JVM process running your `main()` / composition root. | Top of `backgrounder.start()` (same as iOS). |
+| Android  | `Application.onCreate` is running for a fresh process. | Top of `Backgrounder.shared.start()`. The leftover ids are snapshotted when the instance is built (before `onCreate`), so anything you schedule between then and `start()` is never mistaken for a leftover. |
+| iOS      | A new process invocation of `application(_:didFinishLaunchingWithOptions:)`. | Top of `Backgrounder.shared.start()` (before any `BGTaskScheduler.register(...)`); same snapshot-at-construction rule. |
+| macOS    | A new process invocation of `applicationDidFinishLaunching`. | Top of `Backgrounder.shared.start()` (same as iOS). |
+| JVM      | A new JVM process running your `main()` / composition root. | Top of `Backgrounder.shared.start()` (same as iOS). |
 
 ## Android backstop
 
-Even with the sweep, there's a tiny window on Android where `JobScheduler` could fire a worker between the OS launching your process and `Backgrounder.create(...)` running. The library defends against this with a per-instance `AtomicBoolean` ready-gate:
+Even with the sweep, there's a tiny window on Android where `JobScheduler` could fire a worker between the OS launching your process and `Backgrounder.shared.start()` running. The library defends against this with a per-instance `AtomicBoolean` ready-gate:
 
-- `Backgrounder.create(...)` initialises the gate to `false`.
-- `backgrounder.start()` flips it to `true` — call this once any further app-side init the workers depend on is complete.
-- Inside `RegistryDispatchWorker.doWork()`, ephemeral requests check the gate; if `false`, the worker returns a **terminal failure** immediately without invoking user code — it does **not** retry. The process-death contract is the same on every platform: ephemeral work is *purged*, never replayed. The sweep at the next `Backgrounder.create(...)` cancels the unique work and clears the registry entry; your app re-schedules ephemeral work from its own initialisation path once `start()` has run.
+- Construction (the startup initializer, or `Backgrounder.configure(...)`) initialises the gate to `false`.
+- `Backgrounder.shared.start()` flips it to `true` — call this once any further app-side init the workers depend on is complete.
+- Inside `RegistryDispatchWorker.doWork()`, ephemeral requests check the gate; if `false`, the worker returns a **terminal failure** immediately without invoking user code — it does **not** retry. The process-death contract is the same on every platform: ephemeral work is *purged*, never replayed. The sweep at the next `start()` cancels the unique work and clears the registry entry; your app re-schedules ephemeral work from its own initialisation path once `start()` has run.
 
 ## When to use it
 

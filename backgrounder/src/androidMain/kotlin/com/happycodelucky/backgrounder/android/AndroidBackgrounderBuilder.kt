@@ -9,6 +9,7 @@ import com.happycodelucky.backgrounder.BackgrounderEventListener
 import com.happycodelucky.backgrounder.EphemeralRegistry
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
+import com.happycodelucky.backgrounder.SharedBackgrounder
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.russhwolf.settings.SharedPreferencesSettings
 import kotlinx.atomicfu.atomic
@@ -48,7 +49,12 @@ internal object AndroidBackgrounderBuilder {
         val registry = WorkerRegistry()
 
         // Eager ephemeral sweep — first thing we do, before any worker can fire.
-        AndroidEphemeralSweep(application, ephemeral).run()
+        // Snapshots the ephemeral ids now; cancels them inside start(), once
+        // Configuration.Provider has been able to install our WorkerFactory.
+        // (Construction may run from the androidx.startup initializer, before
+        // Application.onCreate — touching WorkManager there would lock in the
+        // default Configuration.)
+        val sweep = AndroidEphemeralSweep(application, ephemeral)
 
         // Per-instance ready gate. Replaces the old top-level
         // `AndroidEphemeralReady` singleton: each Backgrounder holds its own,
@@ -96,17 +102,23 @@ internal object AndroidBackgrounderBuilder {
                     instantRunner = instantRunner,
                     emitter = emitter,
                     onStart = {
+                        sweep.run()
                         // Plan §1.1: `start()` flips the ready gate so workers
                         // that were enqueued (but blocked by the
                         // ephemeral-not-ready backstop) can now run.
                         readyGate.value = true
                     },
                     onShutdown = {
-                        // No-op on Android — WorkManager owns its own dispatch
-                        // scope. Plan §1.1 / SchedulerGuarantees.
+                        // WorkManager owns its own dispatch scope (Plan §1.1 /
+                        // SchedulerGuarantees); only the process-wide bridge
+                        // to it needs releasing.
+                        AndroidBackgrounderInternals.detach()
                     },
                 ),
             )
+        // Claim the process-wide slot first: if another instance is live this
+        // throws before WorkManager is handed a second factory.
+        SharedBackgrounder.install(backgrounder)
         AndroidBackgrounderInternals.attach(backgrounder, factory, application, registry)
         return backgrounder
     }

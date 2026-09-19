@@ -1,24 +1,28 @@
 # macOS launch sequence
 
+!!! note "Swift class name"
+    The framework module and the `Backgrounder` class currently share a name, so SKIE exposes the class to Swift as `Backgrounder_` (`Backgrounder_.shared`, `Backgrounder_.companion.create(...)`). The snippets below are written for the intended name; a framework-module rename that restores it is tracked in `LESSONS.md` T-009.
+
 ```swift
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // 1. Construct.
-    let backgrounder = Backgrounder.companion.create()
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 2. Register every worker factory.
-        backgrounder.register(taskId: SyncWorker.companion.ID) {
+        // Backgrounder.shared builds itself on first access. Call
+        // Backgrounder.companion.create(eventListener:) before this line only
+        // if you want an event listener.
+
+        // 1. Register every worker factory.
+        Backgrounder.shared.register(taskId: SyncWorker.companion.ID) {
             SyncWorker(repo: AppGraph.shared.repository)
         }
 
-        // 3. Start — sweeps ephemeral state and seals the registry.
-        backgrounder.start()
+        // 2. Start — sweeps ephemeral state and seals the registry.
+        Backgrounder.shared.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         // Cancel the scheduler's coroutine scope cleanly.
-        backgrounder.shutdown()
+        Backgrounder.shared.shutdown()
     }
 }
 ```
@@ -52,4 +56,4 @@ macOS doesn't need the iOS periodic-emulation state machine. `NSBackgroundActivi
 
 ## Shutdown
 
-`backgrounder.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope. Call from `applicationWillTerminate` to tear down cleanly. Without it, in-flight workers continue until the OS reclaims the process — for a foreground app being explicitly quit, that's a few extra seconds of work that never matters; for a long-lived agent it can leave file handles open. Always pair with `applicationWillTerminate`.
+`Backgrounder.shared.shutdown()` cancels the scheduler's `SupervisorJob`-rooted scope. Call from `applicationWillTerminate` to tear down cleanly. Without it, in-flight workers continue until the OS reclaims the process — for a foreground app being explicitly quit, that's a few extra seconds of work that never matters; for a long-lived agent it can leave file handles open. Always pair with `applicationWillTerminate`.

@@ -33,3 +33,6 @@ import com.happycodelucky.backgrounder.jvm.JvmBackgrounderBuilder
  */
 public fun Backgrounder.Companion.create(eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop): Backgrounder =
     JvmBackgrounderBuilder.build(eventListener)
+
+/** The JVM needs no configuration, so `Backgrounder.shared` builds on first access. */
+internal actual fun createDefaultBackgrounder(): Backgrounder = Backgrounder.create()

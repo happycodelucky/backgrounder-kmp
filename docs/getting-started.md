@@ -38,7 +38,7 @@ class SyncWorker(
 
 ## 3. Wire up the launch sequence
 
-The library exposes a single `Backgrounder` instance you construct at app launch and hold for the app's lifetime. The three steps are: **`create`** the instance, **`register`** every worker factory, then **`start`** to finalize.
+There is one `Backgrounder` per process, reachable anywhere as `Backgrounder.shared`. On Android the library builds it before `Application.onCreate` through an `androidx.startup` initializer; on iOS, macOS, and the JVM it builds itself on first access. The launch sequence is two steps: **`register`** every worker factory, then **`start`** to finalize.
 
 The factory closure you pass to `register(...)` is where DI happens — pass a closure that resolves dependencies from whatever DI graph your app already uses (Koin, Hilt, kotlin-inject, hand-wired). Backgrounder doesn't require or ship a DI container.
 
@@ -48,38 +48,38 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
     import androidx.work.Configuration
     import com.happycodelucky.backgrounder.Backgrounder
     import com.happycodelucky.backgrounder.androidWorkerFactory
-    import com.happycodelucky.backgrounder.create
+    import com.happycodelucky.backgrounder.shared
 
     class MyApp : Application(), Configuration.Provider {
-        lateinit var backgrounder: Backgrounder
-
         override fun onCreate() {
             super.onCreate()
 
-            // 1. Construct. This eagerly sweeps any ephemeral work from prior
-            //    runs; it does NOT trigger WorkManager.getInstance(...) yet.
-            backgrounder = Backgrounder.create(application = this)
+            // 1. Backgrounder.shared already exists: the library's androidx.startup
+            //    initializer built it before onCreate ran. If your manifest removes
+            //    the InitializationProvider entirely, call
+            //    Backgrounder.configure(application = this) here first.
 
             // 2. Register every worker factory. The closure is yours — resolve
             //    dependencies however you like (Koin, Hilt, hand-wired).
-            backgrounder.register(SyncWorker.ID) {
+            Backgrounder.shared.register(SyncWorker.ID) {
                 SyncWorker(repo = appGraph.repository)
             }
 
-            // 3. Start. Seals the registry; flips the ready gate so workers
-            //    enqueued before this point may now dispatch.
-            backgrounder.start()
+            // 3. Start. Sweeps ephemeral work left over from the previous process,
+            //    seals the registry, and flips the ready gate so workers enqueued
+            //    before this point may now dispatch.
+            Backgrounder.shared.start()
         }
 
         // Tell WorkManager to use Backgrounder's WorkerFactory. Required.
         override val workManagerConfiguration: Configuration get() =
             Configuration.Builder()
-                .setWorkerFactory(backgrounder.androidWorkerFactory())
+                .setWorkerFactory(Backgrounder.shared.androidWorkerFactory())
                 .build()
     }
     ```
 
-    Add to `AndroidManifest.xml` to disable WorkManager's default auto-init (required because we install our `WorkerFactory` via `Configuration.Provider`):
+    Add to `AndroidManifest.xml` to disable WorkManager's default auto-init (required because we install our `WorkerFactory` via `Configuration.Provider`). Keep the provider itself: Backgrounder's own initializer rides on it.
 
     ```xml
     <provider
@@ -97,20 +97,17 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
 
     ```swift title="AppDelegate.swift"
     final class AppDelegate: NSObject, UIApplicationDelegate {
-        // Pick a tick identifier in your app's reverse-DNS namespace; it must
-        // match the entry you add to Info.plist below. The library uses it as
-        // the BGAppRefreshTaskRequest that wakes periodic dispatch in the
-        // background. Periodic task ids do not need their own entries.
-        let backgrounder = Backgrounder.companion.create(
-            tickIdentifier: "dev.example.app.background-tick"
-        )
-
         func application(
             _ application: UIApplication,
             didFinishLaunchingWithOptions options:
                 [UIApplication.LaunchOptionsKey: Any]?,
         ) -> Bool {
-            // 1. (already constructed as a stored property above)
+            // 1. Backgrounder.shared builds itself on first access, using the
+            //    default tick identifier "<bundle id>.backgrounder-tick" for the
+            //    BGAppRefreshTaskRequest that wakes periodic dispatch. To supply an
+            //    event listener or your own tick identifier, call
+            //    Backgrounder.companion.create(tickIdentifier:) before this line.
+            let backgrounder = Backgrounder.shared
 
             // 2. Register every worker factory. Resolve dependencies from
             //    whatever DI graph your iOS app uses.
@@ -128,13 +125,13 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
     }
     ```
 
-    Add the tick identifier (mandatory) plus one entry per `WorkRequest.OneTime` task id you schedule to your app's `Info.plist`. Periodic ids do **not** need their own entries — the tick handles them.
+    Add the tick identifier (mandatory) plus one entry per `WorkRequest.OneTime` task id you schedule to your app's `Info.plist`. Periodic ids do **not** need their own entries — the tick handles them. The [Gradle plugin](recipes/ios-permitted-identifiers.md) can write this array for you.
 
     ```xml
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>dev.example.app.background-tick</string>  <!-- mandatory: matches tickIdentifier above -->
-        <string>dev.example.app.upload</string>           <!-- one-shot WorkRequest.OneTime -->
+        <string>dev.example.app.backgrounder-tick</string>  <!-- mandatory: the default tick, "<bundle id>.backgrounder-tick" -->
+        <string>dev.example.app.upload</string>             <!-- one-shot WorkRequest.OneTime -->
     </array>
     ```
 
@@ -142,18 +139,17 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
 
     ```swift title="AppDelegate.swift"
     final class AppDelegate: NSObject, NSApplicationDelegate {
-        let backgrounder = Backgrounder.companion.create()
-
         func applicationDidFinishLaunching(_ notification: Notification) {
-            backgrounder.register(taskId: SyncWorker.companion.ID) {
+            // Backgrounder.shared builds itself on first access.
+            Backgrounder.shared.register(taskId: SyncWorker.companion.ID) {
                 SyncWorker(repo: AppGraph.shared.repository)
             }
-            backgrounder.start()
+            Backgrounder.shared.start()
         }
 
         func applicationWillTerminate(_ notification: Notification) {
             // Cancel the scheduler's coroutine scope cleanly.
-            backgrounder.shutdown()
+            Backgrounder.shared.shutdown()
         }
     }
     ```
@@ -164,14 +160,14 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
 
     ```kotlin title="Main.kt"
     fun main() {
-        val backgrounder = Backgrounder.create()
-        backgrounder.register(SyncWorker.ID) {
+        // Backgrounder.shared builds itself on first access.
+        Backgrounder.shared.register(SyncWorker.ID) {
             SyncWorker(repo = appGraph.repository)
         }
-        backgrounder.start()
+        Backgrounder.shared.start()
 
         Runtime.getRuntime().addShutdownHook(
-            Thread { backgrounder.shutdown() },
+            Thread { Backgrounder.shared.shutdown() },
         )
 
         // … run your app …
@@ -182,12 +178,12 @@ The factory closure you pass to `register(...)` is where DI happens — pass a c
 
 ## 4. Schedule
 
-From anywhere in your app — pass the `backgrounder` instance down through your app graph as you would any service. Hold one reference; never re-resolve.
+From anywhere in your app, through `Backgrounder.shared`. Inject it into your DI graph if you prefer (`single { Backgrounder.shared }` in Koin); nothing needs to be passed around.
 
 ```kotlin
 import kotlin.time.Duration.Companion.seconds
 
-backgrounder.schedule(
+Backgrounder.shared.schedule(
     WorkRequest.OneTime(
         taskId = SyncWorker.ID,
         constraints = WorkConstraints(networkRequired = NetworkRequirement.Any),

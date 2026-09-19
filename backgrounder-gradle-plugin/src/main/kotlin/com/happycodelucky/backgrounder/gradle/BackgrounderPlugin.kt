@@ -38,6 +38,9 @@ public class BackgrounderPlugin : Plugin<Project> {
             task.description = "Rewrites BGTaskSchedulerPermittedIdentifiers in the iOS Info.plist from the manifest."
             task.manifest.set(collect.flatMap { it.manifest })
             task.infoPlist.set(ext.iosInfoPlist)
+            task.defaultTickIdentifier.set(
+                ext.iosBundleIdentifier.map { it + UpdateInfoPlistTask.DEFAULT_TICK_SUFFIX },
+            )
             task.onlyIf("backgrounder.iosInfoPlist is not configured") { t ->
                 (t as UpdateInfoPlistTask).infoPlist.isPresent
             }

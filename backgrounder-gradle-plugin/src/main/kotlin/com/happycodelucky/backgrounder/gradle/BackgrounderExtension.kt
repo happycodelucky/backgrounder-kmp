@@ -21,6 +21,15 @@ public abstract class BackgrounderExtension {
     public abstract val iosInfoPlist: RegularFileProperty
 
     /**
+     * The iOS app's bundle identifier. When set, `updateBackgrounderInfoPlist`
+     * also adds the library's default tick identifier,
+     * `<bundle id>.backgrounder-tick`, to the array — the id `Backgrounder.shared`
+     * uses on iOS when the app never calls `Backgrounder.create(tickIdentifier:)`.
+     * Leave unset if you pass your own tick identifier and annotate it.
+     */
+    public abstract val iosBundleIdentifier: Property<String>
+
+    /**
      * Name of the compile task whose class output is scanned. Defaults to
      * the first of `compileKotlinJvm`, `compileAndroidMain`, `compileKotlin`
      * that exists in the project, in that order.

@@ -9,23 +9,26 @@ import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 
 /**
- * Slim singleton side-table that pairs each [Backgrounder] with the
- * Android-specific extras the common `Backgrounder` doesn't expose
- * directly: the [BackgrounderWorkerFactory] (which the user composes into
- * their `WorkManager.Configuration`) and the [Application] context used by
- * the diagnostics path to read WorkManager init state.
+ * Process-wide bridge from WorkManager back to the live [Backgrounder].
  *
- * Plan §"DI-free initialization" §2.3 — this side-table is the cost of
- * keeping `Backgrounder` a pure cross-platform type with no Android
- * symbols leaking into commonMain.
- *
- * MUST NOT call suspend functions inside the [synchronized] blocks
- * (CLAUDE.md §3 — non-suspending critical sections only).
+ * WorkManager instantiates workers reflectively through the `WorkerFactory`
+ * installed via `Configuration.Provider`, so that factory needs a static way
+ * to reach the registry. There is exactly one live [Backgrounder] per process
+ * (see `SharedBackgrounder`), which is why this is a single slot rather than
+ * an instance-keyed map.
  */
 internal object AndroidBackgrounderInternals {
+    // MUST NOT call suspend functions inside this block — see CLAUDE.md §3.
     private val lock = SynchronizedObject()
-    private val factories: MutableMap<Backgrounder, BackgrounderWorkerFactory> = mutableMapOf()
-    private val applications: MutableMap<WorkerRegistry, Application> = mutableMapOf()
+
+    private class Attached(
+        val backgrounder: Backgrounder,
+        val factory: BackgrounderWorkerFactory,
+        val application: Application,
+        val registry: WorkerRegistry,
+    )
+
+    private var attached: Attached? = null
 
     fun attach(
         backgrounder: Backgrounder,
@@ -34,33 +37,37 @@ internal object AndroidBackgrounderInternals {
         registry: WorkerRegistry,
     ): Unit =
         synchronized(lock) {
-            factories[backgrounder] = factory
-            applications[registry] = application
+            attached = Attached(backgrounder, factory, application, registry)
+        }
+
+    /** Called from `shutdown()`; the next `configure` re-attaches. */
+    fun detach(): Unit =
+        synchronized(lock) {
+            attached = null
         }
 
     fun workerFactory(backgrounder: Backgrounder): WorkerFactory =
         synchronized(lock) {
-            factories[backgrounder]
-                ?: error(
-                    "Backgrounder has not been attached. " +
-                        "This means you constructed it from outside Backgrounder.create(application: ...) — " +
-                        "use the create() factory.",
+            val current = attached
+            if (current == null || current.backgrounder !== backgrounder) {
+                error(
+                    "Backgrounder has not been attached. This instance is not the live Backgrounder.shared — " +
+                        "construct via Backgrounder.configure(application) or use Backgrounder.shared.",
                 )
+            }
+            current.factory
         }
 
     /**
-     * `true` if WorkManager has been initialised for the application paired
-     * with [registry], or `null` if we don't have an application reference
-     * for that registry (defensive — the diagnostics surface treats null as
-     * "can't tell" rather than emitting a false negative).
+     * `null` when [registry] belongs to no live instance (diagnostics can't
+     * tell), otherwise whether WorkManager can be resolved.
      */
     fun isWorkManagerInitialized(registry: WorkerRegistry): Boolean? =
         synchronized(lock) {
-            val app = applications[registry] ?: return@synchronized null
-            // WorkManager.isInitialized() is a Java-side static; the Kotlin
-            // accessor exists from androidx.work 2.8+.
+            val current = attached
+            if (current == null || current.registry !== registry) return@synchronized null
             @Suppress("DEPRECATION")
             WorkManager.isInitialized() ||
-                runCatching { WorkManager.getInstance(app) }.isSuccess
+                runCatching { WorkManager.getInstance(current.application) }.isSuccess
         }
 }

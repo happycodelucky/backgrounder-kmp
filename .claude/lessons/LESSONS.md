@@ -319,6 +319,16 @@ reader would not infer from the code. Capture the **decision** and the
 Named after Apple's plist key (not `@BackgroundTaskId`) so nobody reads it as required for all background work — it's iOS-only and covers only the tick + one-shot ids.
 **Ref:** `backgrounder-gradle-plugin/`, `docs/recipes/ios-permitted-identifiers.md`.
 
+### D-028 — One live `Backgrounder` per process, exposed as `Backgrounder.shared`; explicit construction kept — 2026-09-19
+**Decision:** `SharedBackgrounder` slot in commonMain; platform builders install into it, `shutdown()` releases it, a second live instance throws. Android populates it via an `androidx.startup` initializer (manifest-registered); iOS/macOS/JVM create lazily on first access. `create`/`configure` stay for listeners and custom tick ids.
+**Why over the obvious alternative:** WorkManager and `BGTaskScheduler.shared` are process singletons — the instance-keyed map in `AndroidBackgrounderInternals` existed only to route reflective Worker construction back to "the" instance. A lazily-created global that self-configures can't work on Android (needs `Application`), so construction stays explicit there, automated by startup. Swift can't see a Kotlin companion `val shared` (K/N already emits `Companion.shared`), so the property is `@HiddenFromObjC` and a SKIE-bundled Swift extension (`src/appleMain/swift`) provides `Backgrounder.shared` over `sharedInstance()`.
+**Ref:** `SharedBackgrounder.kt`, `BackgrounderShared.kt`, `BackgrounderInitializer.kt`, `src/appleMain/swift/BackgrounderShared.swift`.
+
+### D-029 — Ephemeral sweep: snapshot at construction, cancel at `start()` — 2026-09-19
+**Decision:** Every platform's sweep captures `ephemeral.snapshot()` when the instance is built and cancels exactly those ids in `start()`, removing only them (not `clear()`).
+**Why over the obvious alternative:** Android construction can now run from the startup initializer, before `Application.onCreate`; touching `WorkManager` there locks in the default `Configuration` before `Configuration.Provider` runs. Sweeping at `start()` with a fresh snapshot would instead cancel any ephemeral request the app scheduled between construction and `start()`. Snapshot-then-remove closes both holes.
+**Ref:** `AndroidEphemeralSweep.kt`, `IOSEphemeralSweep.kt`, `MacOSBackgrounderBuilder.kt`, `JvmBackgrounderBuilder.kt`.
+
 ---
 
 ## NEVER DO (N)
@@ -434,6 +444,11 @@ match against what they're seeing.
 **Symptom:** Any `./gradlew` task dies in ~2s: `SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or … local.properties`.
 **Cause:** `local.properties` is gitignored, so git worktrees (including `.claude/worktrees/*`) don't inherit it from the main checkout.
 **Unstuck by:** `cp <main-checkout>/local.properties <worktree>/local.properties` (SDK lives at `~/Library/Android/sdk`). Also: a piped `./gradlew … | tail` reports the *pipe's* exit code — check `BUILD SUCCESSFUL`/`FAILED` in the log, not just `$?`.
+
+### T-009 — Swift sees the `Backgrounder` class as `Backgrounder_` — 2026-09-19
+**Symptom:** Bundled Swift (`src/appleMain/swift`) fails with "cannot find type 'Backgrounder' in scope / cannot use module as a type"; SKIE warns at link time that `class Backgrounder` was renamed to `Backgrounder_` "because of a name collision with the framework name".
+**Cause:** The XCFramework module and the Kotlin class share the name `Backgrounder`. SKIE's apinotes rename the class for Swift, so real Swift consumers write `Backgrounder_`, not the `Backgrounder.companion.create(...)` the docs show.
+**Unstuck by:** Inside bundled Swift, refer to the class as `Backgrounder.Backgrounder_`. Real fix (separate PR): rename the framework module (e.g. `BackgrounderKit`) via the KMMBridge/XCFramework config so the class keeps its name; then the Swift docs become true as written.
 
 ### T-008 — Flow collector in runTest's backgroundScope misses the final emission — 2026-06-11
 **Symptom:** A test collecting `Backgrounder.events()` into a list via `backgroundScope.launch { flow.collect { … } }` asserts on the *last* event emitted before idle — and the list is missing exactly that event, intermittently by test shape.

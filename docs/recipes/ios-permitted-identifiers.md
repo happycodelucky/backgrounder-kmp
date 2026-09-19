@@ -4,16 +4,12 @@ Every task id you schedule as a `WorkRequest.OneTime` on iOS, plus the tick iden
 
 ## 1. Annotate each id that belongs in the plist
 
-This is an iOS-only concern and it says nothing about how the work runs. Two kinds of id belong in the array: the tick identifier, and every id you may schedule as a `WorkRequest.OneTime`. Periodic ids and `runNow` ids never reach `BGTaskScheduler`, so they don't need it; annotating them anyway is harmless, since a surplus entry costs nothing, while a missing entry means iOS silently never fires the task.
+This is an iOS-only concern and it says nothing about how the work runs. Two kinds of id belong in the array: the tick identifier, and every id you may schedule as a `WorkRequest.OneTime`. If you rely on the default tick identifier (you never call `Backgrounder.create(tickIdentifier:)`), set `iosBundleIdentifier` in the plugin block instead of annotating anything and the plugin adds `<bundle id>.backgrounder-tick` for you. Periodic ids and `runNow` ids never reach `BGTaskScheduler`, so they don't need it; annotating them anyway is harmless, since a surplus entry costs nothing, while a missing entry means iOS silently never fires the task.
 
 Declare each such id once as a `const val String` and mark it `@BGTaskSchedulerPermittedIdentifier`:
 
 ```kotlin
 import com.happycodelucky.backgrounder.BGTaskSchedulerPermittedIdentifier
-
-object AppTasks {
-    @BGTaskSchedulerPermittedIdentifier const val TICK = "dev.example.app.background-tick"
-}
 
 class SyncWorker(private val repo: Repository) : BackgroundWorker {
     override suspend fun execute(context: WorkerContext): WorkResult = ...
@@ -68,6 +64,7 @@ Wire it into your iOS build however suits you. A common choice is an Xcode run-s
 ```kotlin
 backgrounder {
     iosInfoPlist = file("../iOSApp/App/Info.plist")   // unset → plist task is skipped
+    iosBundleIdentifier = "dev.example.app"           // adds the default tick "<bundle id>.backgrounder-tick"
     scanCompileTask = "compileKotlinJvm"               // default: first of compileKotlinJvm, compileAndroidMain, compileKotlin
     manifest = layout.buildDirectory.file("backgrounder/task-ids.txt")
     warnOnNonReverseDns = true                         // warning only, never an error

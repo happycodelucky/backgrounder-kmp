@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### One `Backgrounder` per process: `Backgrounder.shared`
+
+- There is now exactly one live `Backgrounder` per process, reachable anywhere as `Backgrounder.shared` (Kotlin and Swift). Nothing needs to be injected or passed around; `single { Backgrounder.shared }` if you want it in a DI graph. A second live instance throws; `shutdown()` releases the slot.
+- **Android**: the library's manifest registers `BackgrounderInitializer` with `androidx.startup`, so `shared` exists before `Application.onCreate`. `Backgrounder.create(application)` is renamed `Backgrounder.configure(application)` and is only needed by apps that removed the `InitializationProvider` or run in extra processes; it is idempotent with the initializer. `workManagerConfiguration` reads `Backgrounder.shared.androidWorkerFactory()`.
+- **iOS / macOS / JVM**: `shared` builds itself on first access. `create(...)` remains for apps that want an event listener or, on iOS, their own tick identifier, and installs its result as `shared`.
+- **iOS default tick identifier**: `<bundle id>.backgrounder-tick`, returned by `Backgrounder.companion.defaultTickIdentifier()`. The Gradle plugin adds it to the plist when `backgrounder.iosBundleIdentifier` is set.
+- **Ephemeral sweep timing**: on every platform the leftover ids are snapshotted when the instance is built and cancelled at `start()`. On Android this moves the sweep out of construction (which may now run before `onCreate`) and means an ephemeral request scheduled between construction and `start()` is never mistaken for a leftover.
+- Swift gets `Backgrounder.shared` through a wrapper bundled into the framework by SKIE; the raw bridge function is `Backgrounder.companion.sharedInstance()`.
+
 ### Gradle plugin: generated `BGTaskSchedulerPermittedIdentifiers`
 
 - New `@BGTaskSchedulerPermittedIdentifier` annotation in `:backgrounder`. Put it on the `const val String` ids that belong in the iOS `BGTaskSchedulerPermittedIdentifiers` array — the tick identifier and any id you may schedule as a `OneTime` — wherever they live: top level, `object`, or `companion object`. iOS-only; periodic and `runNow` ids don't need it, and annotating them is harmless.

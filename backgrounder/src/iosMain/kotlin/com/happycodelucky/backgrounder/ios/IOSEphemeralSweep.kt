@@ -19,8 +19,10 @@ internal class IOSEphemeralSweep(
 ) {
     private val log = Logger.withTag("Backgrounder/iOS/EphemeralSweep")
 
+    /** Snapshot at construction so a pre-start ephemeral schedule survives the sweep. */
+    private val ids: Set<String> = ephemeral.snapshot()
+
     fun run() {
-        val ids: Set<String> = ephemeral.snapshot()
         if (ids.isEmpty()) {
             log.d { "no ephemeral entries to sweep" }
             return
@@ -30,6 +32,6 @@ internal class IOSEphemeralSweep(
             BGTaskScheduler.sharedScheduler.cancelTaskRequestWithIdentifier(id)
             state.clear(id)
         }
-        ephemeral.clear()
+        ids.forEach(ephemeral::remove)
     }
 }

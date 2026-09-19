@@ -117,10 +117,16 @@ The library reads `Reachability.shared` directly — there is no Backgrounder-si
             eventListener = events,
         )
 
+        // One live instance per process: shut it down at the end of the test
+        // so the next test can build its own.
+        try {
         // Drive transitions deterministically — `emit(...)`, `setReachable(...)`,
         // `setTransport(...)`, `setDataMetered(...)` are all on the upstream FakeReachability.
         fake.emit(ReachabilityStatus(isReachable = true, transport = Transport.Wifi, isDataMetered = false))
         // ...
+        } finally {
+            backgrounder.shutdown()
+        }
     }
 }
 ```

@@ -1,14 +1,17 @@
 package com.happycodelucky.backgrounder
 
 import com.happycodelucky.backgrounder.ios.IOSBackgrounderBuilder
+import platform.Foundation.NSBundle
 import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
 /**
- * iOS factory for [Backgrounder].
+ * iOS factory for [Backgrounder]. Installs the result as `Backgrounder.shared`.
  *
- * Hold the returned instance for the lifetime of the app — typically as a
- * stored property on `AppDelegate`. The Swift call site reads:
+ * Optional: `Backgrounder.shared` builds itself on first access using
+ * [defaultTickIdentifier] and no listener. Call this first only to supply a
+ * listener or your own tick identifier. A second live instance throws.
+ * The Swift call site reads:
  *
  * ```swift
  * let backgrounder = Backgrounder.companion.create(
@@ -52,8 +55,33 @@ import kotlin.native.ObjCName
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "create")
-@Throws(IllegalArgumentException::class)
+@Throws(IllegalArgumentException::class, IllegalStateException::class)
 public fun Backgrounder.Companion.create(
     tickIdentifier: String,
     eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop,
 ): Backgrounder = IOSBackgrounderBuilder.build(tickIdentifier, eventListener)
+
+/**
+ * The tick identifier `Backgrounder.shared` uses when the app never called
+ * [create]: the main bundle identifier plus `.backgrounder-tick`
+ * (e.g. `dev.example.app.backgrounder-tick`). It must appear in
+ * `BGTaskSchedulerPermittedIdentifiers`; the Gradle plugin adds it when
+ * `backgrounder.iosBundleIdentifier` is set. Exposed so apps that maintain the
+ * plist by hand can read the exact string.
+ *
+ * `@OptIn(ExperimentalObjCName::class)`: Swift-rename annotation; stable in
+ * practice and required by SKIE (CLAUDE.md §8).
+ */
+@OptIn(ExperimentalObjCName::class)
+@ObjCName(swiftName = "defaultTickIdentifier")
+public fun Backgrounder.Companion.defaultTickIdentifier(): String =
+    (NSBundle.mainBundle.bundleIdentifier ?: FALLBACK_TICK_NAMESPACE) + DEFAULT_TICK_SUFFIX
+
+/** Mirrored in the Gradle plugin (`UpdateInfoPlistTask.DEFAULT_TICK_SUFFIX`); keep in sync. */
+internal const val DEFAULT_TICK_SUFFIX: String = ".backgrounder-tick"
+
+/** Only reachable in a process with no main-bundle identifier, e.g. some test hosts. */
+internal const val FALLBACK_TICK_NAMESPACE: String = "com.happycodelucky.backgrounder"
+
+/** iOS zero-configuration path: [defaultTickIdentifier] and no listener. */
+internal actual fun createDefaultBackgrounder(): Backgrounder = Backgrounder.create(tickIdentifier = Backgrounder.defaultTickIdentifier())

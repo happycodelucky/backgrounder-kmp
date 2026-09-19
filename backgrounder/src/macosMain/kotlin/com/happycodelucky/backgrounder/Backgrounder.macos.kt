@@ -38,3 +38,6 @@ import kotlin.native.ObjCName
 @ObjCName(swiftName = "create")
 public fun Backgrounder.Companion.create(eventListener: BackgrounderEventListener = BackgrounderEventListener.Noop): Backgrounder =
     MacOSBackgrounderBuilder.build(eventListener)
+
+/** macOS needs no configuration, so `Backgrounder.shared` builds on first access. */
+internal actual fun createDefaultBackgrounder(): Backgrounder = Backgrounder.create()

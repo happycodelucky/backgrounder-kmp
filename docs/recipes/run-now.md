@@ -98,6 +98,6 @@ The platform layer reports `WorkResult.Failure(message)` to the OS (so iOS / Wor
 
 ## What can go wrong
 
-- **`Backgrounder.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `Backgrounder.create(...)` → `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`.
+- **`Backgrounder.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`, all on `Backgrounder.shared`.
 - **Caller cancelled while the lambda holds a resource** — the lambda must observe cancellation; use `coroutineContext.ensureActive()` between non-suspending blocks, and put cleanup in `try`/`finally` rather than after `runNow`. This is normal Kotlin coroutine hygiene.
 - **Thinking of `runNow` as a `schedule` shortcut** — it isn't. `schedule` outlives the caller and runs when the OS allows; `runNow` *is* the caller's work, just wrapped in an OS-granted background runway. If you backgrounded an in-flight `runNow` on iOS for 5 minutes, the work would still be cancelled when the grace window expired.

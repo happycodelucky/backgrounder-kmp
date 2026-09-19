@@ -8,6 +8,7 @@ import com.happycodelucky.backgrounder.LibraryScopeInstantRunner
 import com.happycodelucky.backgrounder.MonitorEventEmitter
 import com.happycodelucky.backgrounder.PendingInstantCalls
 import com.happycodelucky.backgrounder.ReachabilityGate
+import com.happycodelucky.backgrounder.SharedBackgrounder
 import com.happycodelucky.backgrounder.WorkerRegistry
 import com.happycodelucky.reachable.Reachability
 import com.russhwolf.settings.PreferencesSettings
@@ -71,23 +72,27 @@ internal object JvmBackgrounderBuilder {
         val pendingInstantCalls = PendingInstantCalls()
         val instantRunner = LibraryScopeInstantRunner(pendingInstantCalls, platformLabel = "JVM")
 
-        return Backgrounder(
-            BackgrounderEngine(
-                registry = registry,
-                scheduler = scheduler,
-                instantRunner = instantRunner,
-                emitter = emitter,
-                onStart = {
-                    // The JVM has no OS-level "registered task ids" concept; the
-                    // ephemeral sweep just clears our mirror — same as macOS.
-                    val ids = ephemeral.snapshot()
-                    if (ids.isNotEmpty()) ephemeral.clear()
-                },
-                onShutdown = {
-                    scheduler.shutdown()
-                    instantRunner.shutdown()
-                },
-            ),
-        )
+        // Snapshot at construction so a pre-start ephemeral schedule survives the sweep.
+        val leftoverEphemeral = ephemeral.snapshot()
+        val backgrounder =
+            Backgrounder(
+                BackgrounderEngine(
+                    registry = registry,
+                    scheduler = scheduler,
+                    instantRunner = instantRunner,
+                    emitter = emitter,
+                    onStart = {
+                        // The JVM has no OS-level "registered task ids" concept; the
+                        // ephemeral sweep just clears our mirror — same as macOS.
+                        leftoverEphemeral.forEach(ephemeral::remove)
+                    },
+                    onShutdown = {
+                        scheduler.shutdown()
+                        instantRunner.shutdown()
+                    },
+                ),
+            )
+        SharedBackgrounder.install(backgrounder)
+        return backgrounder
     }
 }

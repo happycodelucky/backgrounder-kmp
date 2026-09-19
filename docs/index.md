@@ -21,13 +21,12 @@ class SyncWorker(private val repo: MyRepository) : BackgroundWorker {
     }
 }
 
-// At app launch
-val backgrounder = Backgrounder.create(application = this)        // Android
-backgrounder.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
-backgrounder.start()
+// At app launch (Backgrounder.shared already exists — no construction step)
+Backgrounder.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repo) }
+Backgrounder.shared.start()
 
 // Anywhere later
-backgrounder.schedule(
+Backgrounder.shared.schedule(
     WorkRequest.OneTime(
         taskId = SyncWorker.ID,
         constraints = WorkConstraints(networkRequired = NetworkRequirement.Any),

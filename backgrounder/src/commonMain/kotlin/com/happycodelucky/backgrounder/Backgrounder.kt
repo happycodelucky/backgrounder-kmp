@@ -293,14 +293,18 @@ public class Backgrounder internal constructor(
     @ObjCName(swiftName = "shutdown")
     public fun shutdown() {
         engine.shutdown()
+        // Free the process-wide slot so a fresh instance can be created.
+        SharedBackgrounder.release(this)
     }
 
     /**
-     * Companion object exists so per-platform source sets can install a
-     * `Backgrounder.Companion.create(...)` extension factory. (`commonMain`
-     * cannot define `create` because the Android variant requires an
+     * Companion object exists so per-platform source sets can install
+     * extension entry points: `Backgrounder.shared` (commonMain),
+     * `Backgrounder.configure(application)` (Android), and
+     * `Backgrounder.create(...)` (iOS / macOS / JVM). `commonMain` cannot
+     * define the constructors itself because the Android variant requires an
      * `Application` and the Apple variants don't — there's no common
-     * signature that doesn't leak `Any?`.)
+     * signature that doesn't leak `Any?`.
      */
     public companion object
 }

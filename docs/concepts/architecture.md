@@ -9,7 +9,7 @@ Backgrounder is three layers, all in `/backgrounder`:
 │    BackgroundWorkerFactory — bulk task-id registration                 │
 │    WorkerRegistry — task-id → factory map (the DI seam)                │
 │    EphemeralRegistry — cold-launch sweep mirror                        │
-│    Backgrounder — class with create / register / start /               │
+│    Backgrounder — one per process (`shared`): register / start /      │
 │                   schedule / cancel / cancelAll / scheduled /          │
 │                   guarantees / runNow / shutdown                       │
 └────────────────────────────────────────────────────────────────────────┘
