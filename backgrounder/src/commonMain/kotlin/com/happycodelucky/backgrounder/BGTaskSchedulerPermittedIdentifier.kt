@@ -6,7 +6,7 @@ package com.happycodelucky.backgrounder
  *
  * **iOS-only concern.** Android and macOS need nothing like it, and it says
  * nothing about how the work runs. Two kinds of id belong in that array:
- * the tick identifier passed to `Backgrounder.create(tickIdentifier:)`, and
+ * the tick identifier passed to `BackgroundTaskManager.create(tickIdentifier:)`, and
  * every id you may schedule as a [WorkRequest.OneTime]. Periodic ids and
  * `runNow` ids never reach `BGTaskScheduler` and don't need it — annotating
  * them anyway is harmless (a surplus plist entry costs nothing), whereas a

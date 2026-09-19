@@ -7,7 +7,7 @@ Typical use: the user just hit Save and you want the document persisted in the b
 ```kotlin
 import com.happycodelucky.backgrounder.*
 
-class DocumentVM(private val backgrounder: Backgrounder, private val repo: DocumentRepository) {
+class DocumentVM(private val backgrounder: BackgroundTaskManager, private val repo: DocumentRepository) {
     private val saveTaskId = "dev.example.app.save-document"
 
     suspend fun save(draft: Document): SavedDocument =
@@ -27,16 +27,16 @@ let saved: SavedDocument = try await backgrounder.run(taskId: saveTaskId) {
 
 ## What it does, what it doesn't
 
-| | Scheduled (`Backgrounder.schedule`) | Instant (`Backgrounder.runNow`) |
+| | Scheduled (`BackgroundTaskManager.schedule`) | Instant (`BackgroundTaskManager.runNow`) |
 | --- | --- | --- |
 | When it runs | When the OS decides constraints are satisfied | Immediately on the calling coroutine |
 | Network / charging gating | `WorkConstraints` honored | None — caller checks if needed |
 | Retries | `BackoffPolicy`, up to `maxAttempts` | None — thrown exception is terminal |
-| Worker source | Registered factory via `Backgrounder.register` | Lambda passed at call site |
+| Worker source | Registered factory via `BackgroundTaskManager.register` | Lambda passed at call site |
 | Result | Worker returns `WorkResult`; caller doesn't see it directly | Caller `await`s the typed `R` |
 | Survives the caller | Yes — the schedule outlives the calling coroutine | No — caller cancellation cancels the work |
 
-If you need constraint gating, retries, or "schedule and forget," use `Backgrounder.schedule`. If you need "do this and give me back the result," use `runNow`.
+If you need constraint gating, retries, or "schedule and forget," use `BackgroundTaskManager.schedule`. If you need "do this and give me back the result," use `runNow`.
 
 ## Pre-emption — last call wins
 
@@ -72,7 +72,7 @@ val job = scope.launch {
 job.cancel()  // → repo.save() observes CancellationException, runNow rethrows, scope unwinds
 ```
 
-Cancelling externally via `Backgrounder.cancel(taskId)` likewise propagates — see [cancel](cancel.md).
+Cancelling externally via `BackgroundTaskManager.cancel(taskId)` likewise propagates — see [cancel](cancel.md).
 
 ## Exceptions propagate
 
@@ -98,6 +98,6 @@ The platform layer reports `WorkResult.Failure(message)` to the OS (so iOS / Wor
 
 ## What can go wrong
 
-- **`Backgrounder.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `Backgrounder.create(...)` → `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`.
+- **`BackgroundTaskManager.start()` not called yet** — `runNow` throws `IllegalStateException`. Calling order is `register(...)` (if you also have scheduled workers) → `start()` → `runNow(...)`, all on `BackgroundTaskManager.shared`.
 - **Caller cancelled while the lambda holds a resource** — the lambda must observe cancellation; use `coroutineContext.ensureActive()` between non-suspending blocks, and put cleanup in `try`/`finally` rather than after `runNow`. This is normal Kotlin coroutine hygiene.
 - **Thinking of `runNow` as a `schedule` shortcut** — it isn't. `schedule` outlives the caller and runs when the OS allows; `runNow` *is* the caller's work, just wrapped in an OS-granted background runway. If you backgrounded an in-flight `runNow` on iOS for 5 minutes, the work would still be cancelled when the grace window expired.

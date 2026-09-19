@@ -28,7 +28,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * Owns its own `CoroutineScope("Backgrounder.<platformLabel>.runNow")` distinct
  * from the platform scheduler's scheduling scope (CLAUDE.md §3 — one clear owner
  * per scope). [shutdown] cancels it; each platform builder threads shutdown
- * through `Backgrounder.shutdown` alongside the scheduler.
+ * through `BackgroundTaskManager.shutdown` alongside the scheduler.
  *
  * @param platformLabel short platform discriminator (`"macOS"`, `"JVM"`) baked
  *   into the Kermit tag and the scope's [CoroutineName] so logs and debugger
@@ -55,7 +55,7 @@ internal class LibraryScopeInstantRunner(
         val erasedTask: suspend () -> Any? = { task() }
         val entry = PendingInstantCalls.Entry(taskId, erasedTask, deferred)
 
-        // Pre-emption: Backgrounder.runNow already called cancel(taskId) before
+        // Pre-emption: BackgroundTaskManager.runNow already called cancel(taskId) before
         // us, but defensively replace any leftover entry to be robust against
         // races. If a prior entry IS still here, cancel its deferred outside
         // the lock (CLAUDE.md §3).
@@ -96,7 +96,7 @@ internal class LibraryScopeInstantRunner(
         return true
     }
 
-    /** Cancel the runner-owned scope. Called from `Backgrounder.shutdown` via the platform builder. */
+    /** Cancel the runner-owned scope. Called from `BackgroundTaskManager.shutdown` via the platform builder. */
     fun shutdown() {
         log.i { "shutdown: cancelling the runNow scope" }
         scope.cancel(CancellationException("LibraryScopeInstantRunner.shutdown"))

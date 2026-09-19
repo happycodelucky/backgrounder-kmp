@@ -9,7 +9,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import androidx.work.ListenableWorker.Result as AndroidResult
 
 /**
- * The single `CoroutineWorker` that backs `Backgrounder.runNow` on Android.
+ * The single `CoroutineWorker` that backs `BackgroundTaskManager.runNow` on Android.
  *
  * Reads the task id[com.happycodelucky.backgrounder.String] out of `inputData`, looks up
  * the in-flight entry in [PendingInstantCalls], invokes the entry's `task`

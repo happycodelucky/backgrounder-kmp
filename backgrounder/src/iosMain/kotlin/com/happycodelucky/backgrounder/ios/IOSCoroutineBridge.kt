@@ -289,7 +289,7 @@ internal class IOSCoroutineBridge(
      * still gets exactly one `setTaskCompletedWithSuccess(false)` call.
      */
     fun shutdown() {
-        log.i { "shutdown: cancelling Backgrounder.iOS scope" }
+        log.i { "shutdown: cancelling BackgroundTaskManager.iOS scope" }
         scope.cancel(CancellationException("IOSCoroutineBridge.shutdown"))
     }
 

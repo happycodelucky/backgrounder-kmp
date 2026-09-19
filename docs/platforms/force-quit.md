@@ -15,7 +15,7 @@ This is **not** the same as the OS killing your process for memory pressure or s
 
 ## What surfaces in your UX
 
-`Backgrounder.guarantees().survivesForceQuit` is `false` on iOS. Branch on it:
+`BackgroundTaskManager.guarantees().survivesForceQuit` is `false` on iOS. Branch on it:
 
 ```kotlin
 if (!backgrounder.guarantees().survivesForceQuit) {
@@ -42,7 +42,7 @@ Concrete patterns:
 
 ## What the library does
 
-- Reports `survivesForceQuit = false` from `Backgrounder.guarantees()`.
+- Reports `survivesForceQuit = false` from `BackgroundTaskManager.guarantees()`.
 - Resurrects active periodic schedules at next cold launch: force-quit drops the OS's pending-request set, so `backgrounder.start()` re-anchors each active periodic's next run and re-submits the tick request.
 - Coalesces missed cycles rather than catching up — a periodic that's overdue by several intervals runs once on resurrection, not once per missed interval.
 

@@ -522,7 +522,7 @@ internal class CoroutineBackedScheduler(
 
     override fun guarantees(): SchedulerGuarantees = JVM_GUARANTEES
 
-    /** Cancel everything and stop the scope. Called by Backgrounder.shutdown via the JVM builder. */
+    /** Cancel everything and stop the scope. Called by BackgroundTaskManager.shutdown via the JVM builder. */
     fun shutdown() {
         cancelAll()
         scope.cancel()

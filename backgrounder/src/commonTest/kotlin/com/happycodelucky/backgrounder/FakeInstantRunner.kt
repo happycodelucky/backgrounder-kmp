@@ -15,7 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
  * or cancellation, use [runWithDeferred] which exposes the underlying
  * `CompletableDeferred<Any?>` for the test to control.
  *
- * Calls to [cancelInFlight] are recorded so [Backgrounder.cancel] tests can
+ * Calls to [cancelInFlight] are recorded so [BackgroundTaskManager.cancel] tests can
  * assert the unified surface forwards correctly.
  */
 internal class FakeInstantRunner : InstantRunner {

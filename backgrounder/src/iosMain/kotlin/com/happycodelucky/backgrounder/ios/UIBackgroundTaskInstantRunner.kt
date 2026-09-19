@@ -90,7 +90,7 @@ internal class UIBackgroundTaskInstantRunner(
         // Begin the iOS background task. The expiration handler cancels the
         // job; `endBackgroundTask` is balanced by the `try/finally` below.
         val ended = EndOnceFlag()
-        val bgTaskName = "Backgrounder.runNow($taskId)"
+        val bgTaskName = "BackgroundTaskManager.runNow($taskId)"
         var bgTaskId: UIBackgroundTaskIdentifier = UIBackgroundTaskInvalid
         bgTaskId =
             UIApplication.sharedApplication.beginBackgroundTaskWithName(bgTaskName) {
@@ -147,10 +147,10 @@ internal class UIBackgroundTaskInstantRunner(
     }
 
     /**
-     * Cancel the runner-owned scope. Called from `Backgrounder.shutdown` via the iOS builder.
+     * Cancel the runner-owned scope. Called from `BackgroundTaskManager.shutdown` via the iOS builder.
      */
     fun shutdown() {
-        log.i { "shutdown: cancelling Backgrounder.iOS.runNow scope" }
+        log.i { "shutdown: cancelling BackgroundTaskManager.iOS.runNow scope" }
         scope.cancel(CancellationException("UIBackgroundTaskInstantRunner.shutdown"))
     }
 

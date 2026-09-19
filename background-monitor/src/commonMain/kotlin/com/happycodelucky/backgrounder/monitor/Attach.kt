@@ -1,7 +1,7 @@
 package com.happycodelucky.backgrounder.monitor
 
 import co.touchlab.kermit.Logger
-import com.happycodelucky.backgrounder.Backgrounder
+import com.happycodelucky.backgrounder.BackgroundTaskManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -12,7 +12,7 @@ import kotlin.native.ObjCName
 private val log = Logger.withTag("Backgrounder/Monitor")
 
 /**
- * Attach a [Monitor] to [Backgrounder.events]. The collector coroutine
+ * Attach a [Monitor] to [BackgroundTaskManager.events]. The collector coroutine
  * runs on [scope]; cancelling either [scope] or the returned
  * [AttachedMonitor] tears the subscription down.
  *
@@ -34,7 +34,7 @@ private val log = Logger.withTag("Backgrounder/Monitor")
  */
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(swiftName = "attach")
-public fun Backgrounder.attachMonitor(
+public fun BackgroundTaskManager.attachMonitor(
     scope: CoroutineScope,
     monitor: Monitor,
 ): AttachedMonitor {

@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
  * The background feed of the iOS periodic-dispatch model.
  *
  * Owns a single library-defined `BGAppRefreshTaskRequest` identifier (the
- * `tickIdentifier` supplied at `Backgrounder.create(tickIdentifier:)`).
+ * `tickIdentifier` supplied at `BackgroundTaskManager.create(tickIdentifier:)`).
  * iOS treats this identifier as a wake-up coupon: when the app has been
  * backgrounded long enough that iOS decides to dispatch background refresh,
  * it calls our launch handler — and we use that wake-up to drain whatever

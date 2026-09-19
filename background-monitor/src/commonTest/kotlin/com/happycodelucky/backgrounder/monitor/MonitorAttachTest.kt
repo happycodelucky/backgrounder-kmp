@@ -21,7 +21,7 @@ import kotlin.time.Instant
 /**
  * Unit coverage for [AttachedMonitor] (and the collector shape
  * `attachMonitor` uses). The real `attachMonitor(...)` operates on a
- * [com.happycodelucky.backgrounder.Backgrounder] instance, which we can't
+ * [com.happycodelucky.backgrounder.BackgroundTaskManager] instance, which we can't
  * cheaply construct without a real platform engine — but its body is
  * trivial: `scope.launch { events().collect { monitor.onEvent(it) } }`,
  * wrapped in `AttachedMonitor(job)`. We exercise the same shape here

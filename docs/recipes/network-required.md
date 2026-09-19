@@ -112,22 +112,28 @@ The library reads `Reachability.shared` directly — there is no Backgrounder-si
 // commonTest — depends on libs.reachable.testing.
 @Test fun retriesWhenOffline() = runTest {
     withFakeReachability(initial = ReachabilityStatus.Unknown) { fake ->
-        val backgrounder = Backgrounder.create(
+        val backgrounder = BackgroundTaskManager.create(
             tickIdentifier = "com.example.app.tick",
             eventListener = events,
         )
 
+        // One live instance per process: shut it down at the end of the test
+        // so the next test can build its own.
+        try {
         // Drive transitions deterministically — `emit(...)`, `setReachable(...)`,
         // `setTransport(...)`, `setDataMetered(...)` are all on the upstream FakeReachability.
         fake.emit(ReachabilityStatus(isReachable = true, transport = Transport.Wifi, isDataMetered = false))
         // ...
+        } finally {
+            backgrounder.shutdown()
+        }
     }
 }
 ```
 
 `withFakeReachability` restores the previous override (typically the production singleton) on exit, even on exception. Nested calls are LIFO-safe by construction. See the [reachable-testing module](https://github.com/happycodelucky/reachable/tree/main/reachable-testing) for the full driver API (`setReachable`, `setTransport`, `setDataMetered`, `reset`, `closeCallCount`, `wasClosed`).
 
-Backgrounder's public `Backgrounder.create(...)` factory has no `reachability:` parameter on either platform — the install hook is the *only* path. This keeps the Swift surface clean (no reachable types leak into Backgrounder's framework) and matches how every other consumer of `Reachability.shared` is tested.
+Backgrounder's public `BackgroundTaskManager.create(...)` factory has no `reachability:` parameter on either platform — the install hook is the *only* path. This keeps the Swift surface clean (no reachable types leak into Backgrounder's framework) and matches how every other consumer of `Reachability.shared` is tested.
 
 ## Common pitfalls
 

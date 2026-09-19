@@ -14,7 +14,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * an [InstantDispatchWorker] (a [androidx.work.CoroutineWorker]); the
  * caller suspends on a `CompletableDeferred<R>` that the worker completes.
  *
- * Pre-emption is enforced by `Backgrounder.runNow` *before* this method is
+ * Pre-emption is enforced by `BackgroundTaskManager.runNow` *before* this method is
  * invoked, so when we install our entry into [PendingInstantCalls] the slot
  * should be empty. We still defensively replace any stale entry — the same
  * defense iOS and macOS apply.

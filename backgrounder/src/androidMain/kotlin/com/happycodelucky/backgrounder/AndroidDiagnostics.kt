@@ -10,7 +10,7 @@ import com.happycodelucky.backgrounder.android.AndroidBackgrounderInternals
  *    the library's [com.happycodelucky.backgrounder.android.BackgrounderWorkerFactory]
  *    via `Configuration.Provider.workManagerConfiguration`, enqueued
  *    workers will fail to instantiate.
- *  2. Has the [WorkerRegistry] been sealed (i.e. [Backgrounder.start] called)?
+ *  2. Has the [WorkerRegistry] been sealed (i.e. [BackgroundTaskManager.start] called)?
  *
  * If we cannot determine the WorkManager state (no application reference
  * paired with the registry — defensive fallback), we omit the diagnostic

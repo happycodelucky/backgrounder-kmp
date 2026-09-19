@@ -7,8 +7,8 @@ Workers are *built by the user* — through a factory closure (or a `BackgroundW
 **Per-id registration** — one closure per task id:
 
 ```kotlin
-backgrounder.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repository) }
-backgrounder.register(UploadWorker.ID) {
+BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repo = appGraph.repository) }
+BackgroundTaskManager.shared.register(UploadWorker.ID) {
     UploadWorker(api = appGraph.api, retryPolicy = appGraph.retryPolicy)
 }
 ```
@@ -28,7 +28,7 @@ class AppModuleWorkerFactory(private val graph: AppGraph) : BackgroundWorkerFact
 }
 
 // Register at launch
-backgrounder.register(AppModuleWorkerFactory(appGraph))
+BackgroundTaskManager.shared.register(AppModuleWorkerFactory(appGraph))
 ```
 
 The `taskIds` set and `create` must stay in sync — the library registers OS handlers for every id in `taskIds` at `start()`. If `create` is called for an id that is in `taskIds` but returns `null`, the registry throws `WorkerRegistry.FactoryDeclinedException`. Overlapping id sets (between two factories, or between a factory and a per-id registration) are rejected at registration time so resolution is always unambiguous.
@@ -48,7 +48,7 @@ Backgrounder doesn't ship a DI module and doesn't require any DI framework. The 
         val repository = Repository(api = Api(...))
     }
 
-    backgrounder.register(SyncWorker.ID) {
+    BackgroundTaskManager.shared.register(SyncWorker.ID) {
         SyncWorker(repo = AppGraph.repository)
     }
     ```
@@ -56,7 +56,7 @@ Backgrounder doesn't ship a DI module and doesn't require any DI framework. The 
 === "Koin"
 
     ```kotlin
-    backgrounder.register(SyncWorker.ID) {
+    BackgroundTaskManager.shared.register(SyncWorker.ID) {
         SyncWorker(repo = getKoin().get())   // resolve from your Koin graph
     }
     ```
@@ -68,13 +68,12 @@ Backgrounder doesn't ship a DI module and doesn't require any DI framework. The 
     class MyApp : Application(), Configuration.Provider {
         @Inject lateinit var repository: Repository
         @Inject lateinit var hiltWorkerFactory: HiltWorkerFactory
-        lateinit var backgrounder: Backgrounder
 
         override fun onCreate() {
             super.onCreate()
-            backgrounder = Backgrounder.create(application = this)
-            backgrounder.register(SyncWorker.ID) { SyncWorker(repository) }
-            backgrounder.start()
+            // BackgroundTaskManager.shared was built by the startup initializer before onCreate.
+            BackgroundTaskManager.shared.register(SyncWorker.ID) { SyncWorker(repository) }
+            BackgroundTaskManager.shared.start()
         }
 
         // Chain Hilt's WorkerFactory with Backgrounder's via DelegatingWorkerFactory.
@@ -91,7 +90,7 @@ Backgrounder doesn't ship a DI module and doesn't require any DI framework. The 
 === "kotlin-inject"
 
     ```kotlin
-    backgrounder.register(SyncWorker.ID) {
+    BackgroundTaskManager.shared.register(SyncWorker.ID) {
         SyncWorker(repo = appComponent.repository)
     }
     ```

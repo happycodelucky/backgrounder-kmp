@@ -14,10 +14,10 @@ when (outcome) {
 
 | Method | Cancels scheduled requests | Cancels in-flight scheduled worker | Cancels in-flight `runNow` |
 | --- | :---: | :---: | :---: |
-| `Backgrounder.cancel(taskId)`  | ✓ | ✓ | ✓ |
-| `Backgrounder.cancelAll()`     | ✓ (all task ids) | ✓ (all task ids) | — |
+| `BackgroundTaskManager.cancel(taskId)`  | ✓ | ✓ | ✓ |
+| `BackgroundTaskManager.cancelAll()`     | ✓ (all task ids) | ✓ (all task ids) | — |
 
-Use `Backgrounder.cancel(taskId)` unless you specifically need scheduled-only semantics (i.e. you want `cancelAll()` which does not touch in-flight `runNow` calls). The `pendingCleared` count on the returned `CancelOutcome.Cancelled` reflects the platform-reported scheduled count — in-flight `runNow` cancellations are not added to it (the count's meaning stays consistent with v1).
+Use `BackgroundTaskManager.cancel(taskId)` unless you specifically need scheduled-only semantics (i.e. you want `cancelAll()` which does not touch in-flight `runNow` calls). The `pendingCleared` count on the returned `CancelOutcome.Cancelled` reflects the platform-reported scheduled count — in-flight `runNow` cancellations are not added to it (the count's meaning stays consistent with v1).
 
 To cancel everything Backgrounder has scheduled (does not touch in-flight `runNow`):
 
@@ -31,15 +31,15 @@ backgrounder.cancelAll()
 
 For **scheduled** work, the OS-imposed primitive decides whether an in-flight worker can be interrupted:
 
-| Platform | Does `Backgrounder.cancel(taskId)` interrupt a running scheduled worker? |
+| Platform | Does `BackgroundTaskManager.cancel(taskId)` interrupt a running scheduled worker? |
 | -------- | --------------------------------------------- |
 | Android  | **Yes** — `WorkManager.cancelUniqueWork` triggers `onStopped`, the coroutine job is cancelled. |
 | iOS      | **No** — `BGTaskScheduler.cancel(taskRequestWithIdentifier:)` only kills *pending* requests. A worker mid-execution finishes whatever it was doing. |
 | macOS    | **Yes** — `NSBackgroundActivityScheduler.invalidate()` interrupts the running block. |
 
-For **in-flight `runNow`**, `Backgrounder.cancel(taskId)` always cancels the lambda on every platform — the deferred completes with `CancellationException` and the caller's `await` rethrows. (`runNow` runs on the calling coroutine context with a platform-specific runway, so the cancellation path is purely in-process; no platform-scheduler involvement.)
+For **in-flight `runNow`**, `BackgroundTaskManager.cancel(taskId)` always cancels the lambda on every platform — the deferred completes with `CancellationException` and the caller's `await` rethrows. (`runNow` runs on the calling coroutine context with a platform-specific runway, so the cancellation path is purely in-process; no platform-scheduler involvement.)
 
-The iOS gap on scheduled work is reflected in `Backgrounder.guarantees().cancelsInFlight = false`. If your UX shows a "Cancel" button for *scheduled* work, branch on this:
+The iOS gap on scheduled work is reflected in `BackgroundTaskManager.guarantees().cancelsInFlight = false`. If your UX shows a "Cancel" button for *scheduled* work, branch on this:
 
 ```kotlin
 val cancelButton = if (backgrounder.guarantees().cancelsInFlight) {

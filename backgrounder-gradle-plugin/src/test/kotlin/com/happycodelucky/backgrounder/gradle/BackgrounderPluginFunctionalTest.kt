@@ -147,6 +147,21 @@ class BackgrounderPluginFunctionalTest {
     }
 
     @Test
+    fun bundleIdentifierAddsTheDefaultTick() {
+        val dir =
+            project(
+                """object A { @BGTaskSchedulerPermittedIdentifier const val X = "dev.example.app.upload" }""",
+                extra = """iosBundleIdentifier = "dev.example.app"""",
+            )
+        runner(dir, "updateBackgrounderInfoPlist").build()
+        val plist = dir.resolve("ios/Info.plist").readText()
+        assertTrue(plist.contains("<string>dev.example.app.backgrounder-tick</string>"), plist)
+        assertTrue(plist.contains("<string>dev.example.app.upload</string>"), plist)
+        // The manifest stays code-only; the tick is a plist-side addition.
+        assertEquals("dev.example.app.upload\n", dir.resolve("build/backgrounder/task-ids.txt").readText())
+    }
+
+    @Test
     fun plistTaskSkippedWhenNotConfigured() {
         val dir = project("""object A { @BGTaskSchedulerPermittedIdentifier const val X = "dev.example.x" }""", plist = null)
         val result = runner(dir, "updateBackgrounderInfoPlist").build()

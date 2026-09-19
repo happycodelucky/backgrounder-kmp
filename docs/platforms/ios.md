@@ -3,57 +3,58 @@
 !!! warning "Read the force-quit caveat first"
     iOS background tasks **stop firing entirely** when the user force-quits the app, until they manually launch it again. See [Force-quit caveat (iOS)](force-quit.md). This is the single most-often-misunderstood thing about iOS background work.
 
-The iOS launch sequence is **three steps** — *create*, *register*, *start*. The `Backgrounder` instance is a stored property on `AppDelegate`; `start()` runs from `application(_:didFinishLaunchingWithOptions:)` before the launch method returns.
+The iOS launch sequence is **two steps** — *register*, then *start* — run from `application(_:didFinishLaunchingWithOptions:)` before the launch method returns. `BackgroundTaskManager.shared` builds itself on first access; there is nothing to construct or hold.
 
 ```swift
 @main
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    // 1. Construct. Pass the library's tick identifier — the iOS
-    //    BGAppRefreshTaskRequest the dispatcher uses to wake periodics
-    //    in the background. Pick something in your app's reverse-DNS
-    //    namespace; it must match the entry you add to Info.plist below.
-    let backgrounder = Backgrounder.companion.create(
-        tickIdentifier: "dev.example.app.background-tick"
-    )
-
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions options:
             [UIApplication.LaunchOptionsKey: Any]?,
     ) -> Bool {
-        // 2. Register every worker factory. The closure resolves dependencies
-        //    from whatever DI graph your iOS app uses (or none).
+        // 1. BackgroundTaskManager.shared builds itself on first access, using the
+        //    default tick identifier "<bundle id>.backgrounder-tick" for the
+        //    BGAppRefreshTaskRequest that wakes periodic dispatch. To supply an
+        //    event listener or your own tick identifier, call
+        //    BackgroundTaskManager.companion.create(tickIdentifier:) before this line.
+        let backgrounder = BackgroundTaskManager.shared
+
+        // 2. Register every worker factory. Resolve dependencies from
+        //    whatever DI graph your iOS app uses.
         backgrounder.register(taskId: SyncWorker.companion.ID) {
             SyncWorker(repo: AppGraph.shared.repository)
         }
 
-        // 3. Start. Performs the iOS ephemeral sweep, registers BGTaskScheduler
-        //    launch handlers (the tick + per-id for one-shots), starts the
-        //    foreground dispatch loop, and resurrects active periodic state.
-        //    Must run before this method returns.
+        // 3. Start. Performs the iOS ephemeral sweep, registers
+        //    BGTaskScheduler launch handlers (tick + per-id one-shots),
+        //    starts the foreground dispatch loop, and resurrects active
+        //    periodic state. Must run before this method returns.
         backgrounder.start()
         return true
     }
 }
 ```
 
-`backgrounder.start()` must be called **before the launch method returns** — `BGTaskScheduler.register` requires its handler to be registered before the app finishes launching, or iOS will refuse to dispatch tasks for that identifier in this process.
+`BackgroundTaskManager.shared.start()` must be called **before the launch method returns** — `BGTaskScheduler.register` requires its handler to be registered before the app finishes launching, or iOS will refuse to dispatch tasks for that identifier in this process.
 
 ## Info.plist
 
 You need **at least the tick identifier** plus one entry per `WorkRequest.OneTime` task id you schedule. Periodic task ids do **not** need their own entries — they're driven by the dispatcher through the tick.
 
+The tick identifier defaults to `<bundle id>.backgrounder-tick` (`BackgroundTaskManager.companion.defaultTickIdentifier()` returns the exact string). Apps that call `BackgroundTaskManager.companion.create(tickIdentifier:)` use whatever they passed instead.
+
 ```xml
 <key>BGTaskSchedulerPermittedIdentifiers</key>
 <array>
-    <string>dev.example.app.background-tick</string>  <!-- mandatory: matches tickIdentifier above -->
-    <string>dev.example.app.upload</string>           <!-- one-shot WorkRequest.OneTime -->
+    <string>dev.example.app.backgrounder-tick</string>  <!-- mandatory: the default tick for bundle id dev.example.app -->
+    <string>dev.example.app.upload</string>             <!-- one-shot WorkRequest.OneTime -->
 </array>
 ```
 
 You don't have to maintain this array by hand. Mark the tick and each one-shot id `@BGTaskSchedulerPermittedIdentifier const val` in the shared module and let the Gradle plugin rewrite the array from your code — see [Generate the iOS permitted identifiers](../recipes/ios-permitted-identifiers.md).
 
-The library validates the tick identifier during `backgrounder.start()` (logs an error if missing — periodic dispatch is dead in the water without it) and warns about each registered factory id missing from the plist (you only need a per-id entry if you'll schedule that id as a `OneTime`; a periodic-only id doesn't need one).
+The library validates the tick identifier during `start()` (logs an error if missing — periodic dispatch is dead in the water without it) and warns about each registered factory id missing from the plist (you only need a per-id entry if you'll schedule that id as a `OneTime`; a periodic-only id doesn't need one).
 
 ## What runs where
 
