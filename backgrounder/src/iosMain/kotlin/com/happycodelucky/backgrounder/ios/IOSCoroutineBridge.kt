@@ -13,7 +13,6 @@ import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
-import com.happycodelucky.backgrounder.gateBudgetFor
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -177,16 +176,15 @@ internal class IOSCoroutineBridge(
                     // ── Reachability gate (review-loop round 2). Closes the
                     // iOS gap where `BGAppRefreshTaskRequest` ignores the
                     // network-required field entirely and `BGProcessingTaskRequest`
-                    // only treats it as advisory. The gate waits up to
-                    // `min(5s, capabilities.maxExecutionTime / 4)` for the
-                    // network requirement to be satisfied; on timeout we
-                    // short-circuit to `WorkResult.Retry` so the scheduler's
-                    // backoff path reschedules — exactly the contract the
-                    // existing periodic/one-shot paths already document.
-                    val gateBudget = gateBudgetFor(capabilities)
-                    val gateResult = gate.awaitReachable(networkRequired, gateBudget)
+                    // only treats it as advisory. We pass the RAW per-invocation
+                    // budget; the gate owns the single `min(5s, budget / 4)`
+                    // quartering and reports the effective wait it used (see
+                    // B-028). On timeout we short-circuit to `WorkResult.Retry`
+                    // so the scheduler's backoff path reschedules — exactly the
+                    // contract the existing periodic/one-shot paths already document.
+                    val gateResult = gate.awaitReachable(networkRequired, capabilities.maxExecutionTime)
                     if (gateResult is ReachabilityGate.GateResult.TimedOut) {
-                        tagged.i { "reachability gate timed out (requirement=$networkRequired, budget=$gateBudget); deferring as Retry" }
+                        tagged.i { "reachability gate timed out (requirement=$networkRequired, waited=${gateResult.waited}); deferring as Retry" }
                         emitter.emit(
                             MonitorEvent.AttemptDeferred(
                                 taskId = taskId,
@@ -195,7 +193,7 @@ internal class IOSCoroutineBridge(
                                 reason =
                                     DeferralReason.ReachabilityTimeout(
                                         requirement = networkRequired,
-                                        budget = gateBudget,
+                                        waited = gateResult.waited,
                                     ),
                             ),
                         )

@@ -14,7 +14,6 @@ import com.happycodelucky.backgrounder.TaskId
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
-import com.happycodelucky.backgrounder.gateBudgetFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -182,18 +181,18 @@ internal class IOSPeriodicDispatcher(
             // OS-level constraint enforcement on the dispatch paths this
             // class drives (BGAppRefreshTaskRequest + in-process foreground
             // loop both ignore `requiresNetworkConnectivity`). Honour
-            // `WorkConstraints.networkRequired` at the library level by
-            // suspending here up to `min(5s, capabilities.maxExecutionTime / 4)`
-            // and short-circuiting to Retry on timeout. The cancellation /
-            // worker-throw branches below catch the same shape.
-            val gateBudget = gateBudgetFor(capabilities)
-            val gateResult = gate.awaitReachable(networkRequired, gateBudget)
+            // `WorkConstraints.networkRequired` at the library level by passing
+            // the RAW per-invocation budget; the gate owns the single
+            // `min(5s, budget / 4)` quartering and reports the effective wait
+            // it used (see B-028), short-circuiting to Retry on timeout. The
+            // cancellation / worker-throw branches below catch the same shape.
+            val gateResult = gate.awaitReachable(networkRequired, capabilities.maxExecutionTime)
 
             val result: WorkResult =
                 if (gateResult is ReachabilityGate.GateResult.TimedOut) {
                     log.i {
                         "$taskId reachability gate timed out " +
-                            "(requirement=$networkRequired, budget=$gateBudget); " +
+                            "(requirement=$networkRequired, waited=${gateResult.waited}); " +
                             "skipping worker, deferring as Retry"
                     }
                     emitter.emit(
@@ -204,7 +203,7 @@ internal class IOSPeriodicDispatcher(
                             reason =
                                 DeferralReason.ReachabilityTimeout(
                                     requirement = networkRequired,
-                                    budget = gateBudget,
+                                    waited = gateResult.waited,
                                 ),
                         ),
                     )
