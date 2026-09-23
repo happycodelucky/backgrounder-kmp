@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Built with Kotlin 2.4
+
+- The library is now compiled with Kotlin 2.4.10 at language and API version 2.4. **Kotlin Multiplatform consumers need Kotlin 2.4 or newer**: a klib can only be read by a compiler at least as new as its language version. JVM and Android consumers need Kotlin 2.3 or newer. Swift / SPM consumers are unaffected.
+- No public API change. The Kotlin ABI (klib and JVM) and the Swift / Objective-C headers are identical to the previous build.
+- The XCFramework's built-in minimum OS moves from iOS 14 / macOS 11 to iOS 15 / macOS 12, Kotlin 2.4's new default. `Package.swift` already requires iOS 18 / macOS 15, so nothing changes for SPM consumers.
+- `kotlinx-datetime` and `kotlinx-collections-immutable` are no longer runtime dependencies; the library never used them. If your app relied on getting them transitively, declare them yourself.
+
 ### `Backgrounder` class renamed to `BackgroundTaskManager`
 
 - The entry-point class is now `BackgroundTaskManager`; `Backgrounder` remains the library, Maven group, framework module, and Gradle plugin name. Two reasons: the class name now says what the object is, and the old name collided with the Apple framework module, which made SKIE expose it to Swift as `Backgrounder_`. Swift now reads `BackgroundTaskManager.shared` after `import Backgrounder`. Library-branded siblings (`BackgrounderEventListener`, `BackgrounderInitializer`, `BackgrounderWorkerFactory`) keep their names.

@@ -42,7 +42,8 @@ K2 only. No K1 fallback.
 
 ## 3. Language standards
 
-- `languageVersion` and `apiVersion` set to current stable.
+- `languageVersion` and `apiVersion` set to current stable. This is also the minimum Kotlin a KMP consumer needs to read our klibs, so moving it is a consumer-facing change: note it in `docs/changelog.md`.
+- Explicit backing fields are stable from 2.4, but keep `asStateFlow()` on public `StateFlow` properties. A backing field hands consumers the `MutableStateFlow` instance, which they can cast back and mutate.
 - Stable APIs only. Experimental APIs require an explicit `@OptIn` with a one-line comment explaining why.
 - No `!!` in production code.
 - `internal` by default. Widen visibility only when needed.

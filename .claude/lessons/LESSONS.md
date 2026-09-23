@@ -343,6 +343,11 @@ Named after Apple's plist key (not `@BackgroundTaskId`) so nobody reads it as re
 **Why over the obvious alternative:** Wiring detekt 1.23.x means an analyzer that embeds Kotlin 2.0 against 2.4 sources; 2.x is alpha. A pin that isn't applied only pretends there's a gate.
 **Ref:** CLAUDE.md §3.
 
+### D-032 — Kotlin 2.4.10 at language/API 2.4; 2.4.20 held for SKIE — 2026-09-23
+**Decision:** Compiler 2.4.10 + SKIE 0.10.14 (supports 2.4.0/2.4.10 only), `languageVersion`/`apiVersion` 2.4 on the published KMP modules. 2.4.20 waits for touchlab/SKIE#202; its atomicfu-in-public-inline ban on Native needs an audit first.
+**Why over the obvious alternative:** Keeping language 2.3 would have kept KMP consumers on Kotlin 2.3 (klibs need a compiler ≥ the library's language version), but CLAUDE.md §3 tracks current stable. KMP consumers now need Kotlin ≥ 2.4; JVM ≥ 2.3; SPM unaffected. Klib ABI, JVM ABI and ObjC/Swift headers were diffed: no change. Gradle 9.7.1 / AGP 9.4.1 sit outside KGP 2.4.10's *tested* range (≤ 9.5.0 / ≤ 9.1.0) and Xcode 27 is past the documented 26.4 — the full gate + XCFramework build pass on all three.
+**Ref:** `gradle/libs.versions.toml` (kotlin pin comment).
+
 ---
 
 ## NEVER DO (N)
