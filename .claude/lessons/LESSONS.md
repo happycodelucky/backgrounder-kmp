@@ -338,6 +338,11 @@ Named after Apple's plist key (not `@BackgroundTaskId`) so nobody reads it as re
 **Why over the obvious alternative:** Renaming the framework module (`BackgrounderKit`) would have kept `Backgrounder.shared` in Swift but touched KMMBridge, `Package.swift`, and every consumer's `import`. The class rename removes the collision at the source, reads better (`BackgroundTaskManager.shared` says what it is), and keeps the brand on the module where it belongs.
 **Ref:** `BackgroundTaskManager.kt`, T-009.
 
+### D-031 — Unused dependencies removed; detekt deferred to a stable 2.x — 2026-09-23
+**Decision:** Dropped `kotlinx-datetime` + `kotlinx-collections-immutable` (on commonMain, zero imports — shipped as consumer runtime deps), `kermit-test`, and the dead `kotlinx-io` / `kotest` / `detekt` pins (N-006). CLAUDE.md §3 now says ktlint only.
+**Why over the obvious alternative:** Wiring detekt 1.23.x means an analyzer that embeds Kotlin 2.0 against 2.4 sources; 2.x is alpha. A pin that isn't applied only pretends there's a gate.
+**Ref:** CLAUDE.md §3.
+
 ---
 
 ## NEVER DO (N)

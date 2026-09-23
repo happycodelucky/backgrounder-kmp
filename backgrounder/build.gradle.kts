@@ -145,8 +145,6 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.kotlinx.collections.immutable)
             implementation(libs.kotlinx.atomicfu)
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.coroutines)
@@ -164,7 +162,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
             implementation(libs.multiplatform.settings.test)
-            implementation(libs.kermit.test)
             // Upstream-blessed FakeReachability + withFakeReachability install
             // helper. Replaces our hand-rolled commonTest fake; tests interact
             // with `Reachability.shared` directly via the install/uninstall hook.

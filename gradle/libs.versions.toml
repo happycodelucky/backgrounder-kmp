@@ -41,9 +41,6 @@ macos-deployment-target = "15.0"
 # --- kotlinx ----------------------------------------------------------------
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.10.0"
-kotlinx-datetime = "0.7.1"
-kotlinx-io = "0.9.0"
-kotlinx-collections-immutable = "0.4.0"
 kotlinx-atomicfu = "0.33.0"
 
 # --- AndroidX ---------------------------------------------------------------
@@ -67,7 +64,6 @@ reachable = "0.14.0"
 
 # --- Testing ----------------------------------------------------------------
 turbine = "1.2.1"
-kotest = "6.1.11"
 
 # --- Gradle plugin (:backgrounder-gradle-plugin) -------------------------
 # ASM reads the compiled class files for `@BackgroundTaskId` constants. Gradle
@@ -78,7 +74,6 @@ asm = "9.10.1"
 # --- Lint ------------------------------------------------------------------
 ktlint = "1.8.0"               # The ktlint tool itself.
 ktlintGradle = "14.2.0"        # The org.jlleitschuh.gradle.ktlint Gradle plugin.
-detekt = "1.23.7"
 
 
 [libraries]
@@ -88,8 +83,6 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
-kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinx-collections-immutable" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "kotlinx-atomicfu" }
 
 # --- AndroidX ---------------------------------------------------------------
@@ -103,13 +96,11 @@ multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
 multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatform-settings" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
-kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
 reachable = { module = "com.happycodelucky.reachable:reachable", version.ref = "reachable" }
 reachable-testing = { module = "com.happycodelucky.reachable:reachable-testing", version.ref = "reachable" }
 
 # --- Testing ----------------------------------------------------------------
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
-kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 
 
