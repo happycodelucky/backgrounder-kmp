@@ -60,14 +60,21 @@ subprojects {
     }
 }
 
-// Apply Dokka to the :backgrounder module and aggregate into docs/api/.
+// The root project is named `backgrounder`, so with the shared group above its
+// coordinates collide with :backgrounder's. Gradle then resolves
+// `dokka(project(":backgrounder"))` back onto the root itself and the aggregate
+// comes out empty. The root is never published, so a distinct group is free.
+group = "com.happycodelucky.backgrounder.build"
+
+// Aggregate the published modules' Dokka HTML into docs/api/.
 dokka {
     moduleName.set("Backgrounder")
 }
 
 dependencies {
-    // Aggregate Dokka HTML from :backgrounder into the root build (Dokka v2 pattern).
+    // Aggregate Dokka HTML into the root build (Dokka v2 pattern).
     dokka(project(":backgrounder"))
+    dokka(project(":background-monitor"))
 }
 
 /**
@@ -75,8 +82,10 @@ dependencies {
  *
  * The aggregated HTML lives at build/dokka/html after dokkaGeneratePublicationHtml.
  * mkdocs looks at docs/api/ when it builds the site; CI runs Dokka before mkdocs.
+ * `Sync`, not `Copy`: docs/api/ is fully generated, so stale pages from renamed or
+ * removed modules must be purged rather than shipped.
  */
-tasks.register<Copy>("copyDokkaToDocs") {
+tasks.register<Sync>("copyDokkaToDocs") {
     group = "documentation"
     description = "Copies aggregated Dokka HTML into docs/api/ for mkdocs."
 

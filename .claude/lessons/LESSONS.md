@@ -180,6 +180,11 @@ single grep finds them.
 **Fix:** All three flags `false`, with the in-process rationale at the declaration; `docs/concepts/guarantees.md` table corrected.
 **Ref:** `NSBackgroundActivityBackedScheduler.kt::MACOS_GUARANTEES`.
 
+### B-028 — Dokka aggregate (docs/api/) was an empty "All modules" page — 2026-09-23
+**Cause:** Root project is named `backgrounder` and `allprojects` gives it the same group, so its coordinates equal `:backgrounder`'s; Gradle resolved `dokka(project(":backgrounder"))` back onto the root itself (`dependencies --configuration "dokkaHtmlModuleOutputDirectoriesResolver~internal"` shows `project :backgrounder -> root project :`).
+**Fix:** Root overrides `group` to `com.happycodelucky.backgrounder.build` (never published). Any new root-level aggregation dependency on `:backgrounder` hits the same trap without it.
+**Ref:** root `build.gradle.kts`.
+
 ---
 
 ## Novel design decisions (D)
