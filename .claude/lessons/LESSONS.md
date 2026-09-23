@@ -41,6 +41,10 @@ review checklist. Entries below are the wider set of bugs that have actually
 landed in this repo — review-catalogue items are listed here as well so a
 single grep finds them.
 
+### B-029 — Renovate's Kotlin hold also froze every kotlinx library — 2026-09-23
+**Cause:** `matchPackagePrefixes: ['org.jetbrains.kotlin']` matches `org.jetbrains.kotlinx:*` too, so coroutines / serialization / atomicfu could never get a Renovate PR.
+**Fix:** Boundary regex `/^org\.jetbrains\.kotlin([.:]|$)/` in `matchPackageNames` (`renovate.json5`). Note: Renovate has never opened a PR here — check the app is installed.
+
 ### B-028 — Release failed on `compileCommonMainKotlinMetadata`; CI `check` never runs it — 2026-09-19
 **Cause:** `LibraryScopeInstantRunner` imported `kotlin.coroutines.cancellation.CancellationException` and passed it to `Job.cancel` / `CoroutineScope.cancel`, which take `kotlinx.coroutines.CancellationException`. Per-target compiles accept it (both alias the same platform class) but the metadata compile treats them as distinct expect classes. `check` doesn't run metadata compilation; only publishing does, so it surfaced in the release workflow.
 **Fix:** Import `kotlinx.coroutines.CancellationException` in commonMain whenever the value is handed to a coroutines API. `mise run check` (what CI runs) now includes `compileKotlinMetadata`.
