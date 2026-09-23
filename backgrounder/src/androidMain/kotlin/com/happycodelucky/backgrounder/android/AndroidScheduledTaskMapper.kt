@@ -95,9 +95,7 @@ internal object AndroidScheduledTaskMapper {
         val c = view.constraintsView
         if (c != null) {
             when (c.networkType) {
-                NetworkType.NOT_REQUIRED -> {
-                    Unit
-                }
+                NetworkType.NOT_REQUIRED -> {}
 
                 NetworkType.CONNECTED -> {
                     result.add(PendingPredicate.NetworkRequired(NetworkRequirement.Any))
@@ -133,9 +131,7 @@ internal object AndroidScheduledTaskMapper {
 
                 ScheduledTask.State.Running,
                 ScheduledTask.State.Blocked,
-                -> {
-                    Unit
-                }
+                -> {}
             }
         }
         return result

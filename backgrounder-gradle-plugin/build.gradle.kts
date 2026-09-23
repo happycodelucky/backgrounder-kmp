@@ -27,7 +27,7 @@ plugins {
 kotlin {
     explicitApi()
     compilerOptions {
-        // Gradle 9.4 embeds Kotlin 2.3.0 but runs plugin code at language /
+        // Gradle 9.7 embeds Kotlin 2.4.0 but runs plugin code at language /
         // API level 2.2 (docs.gradle.org/current/userguide/compatibility.html).
         // Compiling against 2.2 keeps the plugin loadable on every Gradle 9.x
         // daemon, whatever Kotlin the consumer's build script uses. This is

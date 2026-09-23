@@ -401,6 +401,7 @@ project — beyond CLAUDE.md §13's general hard rules. Section here is for the
 **Why:** SKIE lags Kotlin releases by a few days. Bumping past the supported range disables SKIE; the framework falls back to default K/N ObjC export and the Swift surface regresses dramatically.
 **Ref:** CLAUDE.md §2, §8.
 **Lockstep example (2026-06):** reachable 0.13.0 was built on Kotlin 2.3.21, so the consumer bump pulled Kotlin 2.3.20→2.3.21 — which required SKIE 0.10.11→0.10.12 (its sole change is "Support for Kotlin 2.3.21"). Kotlin and SKIE moved together; this is the rule working as intended, not an exception to it.
+**Hold example (2026-09):** SKIE 0.10.14 supports 2.4.0/2.4.10, not 2.4.20 → landed on 2.4.10; 2.4.20 waits for touchlab/SKIE#202. Check `SKIE/gradle.properties` `versionSupport.kotlin` *at the release tag*, not `main`.
 
 ### N-011 — Never read wall-clock time inside dispatcher / scheduler logic — 2026-05-10
 **Don't:** Call `Clock.System.now()` from code under test that uses `runTest` virtual time.
@@ -474,3 +475,8 @@ match against what they're seeing.
 **Cause:** Likely a previous **non-dry-run** publish or a leftover staged Portal deployment that was auto-released. The Central Portal is the source of truth.
 **Unstuck by:** Check `central.sonatype.com` → Deployments. If a stuck deployment exists, Drop it. Then bump the version literal in `build.gradle.kts` (humans bump major/minor; the workflow bumps patch). See D-009.
 **Ref:** PR #19.
+
+### T-010 — `checkKotlinAbi` fails after a Kotlin bump, but only `synthetic` members vanished — 2026-09-23
+**Symptom:** A JVM `.api` dump written by KGP 2.3 fails against 2.4 with only `public synthetic fun <init>(…DefaultConstructorMarker)` lines removed.
+**Cause:** KGP 2.4's dumper omits synthetic members; the class file still has them (`javap -v -p` shows `ACC_SYNTHETIC`). Dump-format change, not an ABI change. Also: 2.4 removed `abiValidation { enabled }` — call `abiValidation {}` to enable.
+**Unstuck by:** Confirm with `javap`, then regenerate the dump with `updateKotlinAbi`.

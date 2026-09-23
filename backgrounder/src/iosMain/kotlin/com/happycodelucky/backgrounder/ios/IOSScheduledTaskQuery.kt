@@ -88,9 +88,7 @@ internal class IOSScheduledTaskQuery(
 
                 ScheduledTask.State.Running,
                 ScheduledTask.State.Blocked,
-                -> {
-                    Unit
-                }
+                -> {}
             }
         }
         return result

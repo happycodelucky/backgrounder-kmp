@@ -28,7 +28,7 @@ Use the **latest stable**. Never EAP, RC, or beta on `main`. All versions live i
 
 Floors as of last edit:
 
-- Kotlin 2.3.21
+- Kotlin 2.4.10 (2.4.20 is held until SKIE supports it — see the `kotlin` pin in `gradle/libs.versions.toml`)
 - Gradle 9.x
 - AGP 9.x with `com.android.kotlin.multiplatform.library` (use the new `android` block, not `androidTarget`)
 - JVM target 21

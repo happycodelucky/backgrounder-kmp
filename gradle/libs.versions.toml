@@ -10,13 +10,17 @@
 [versions]
 
 # --- Toolchain --------------------------------------------------------------
-# Kotlin tracks the CLAUDE.md §2 floor (2.3.21). SKIE 0.10.12 added support for
-# Kotlin 2.3.21, which is what unblocks this pin. CLAUDE.md §8: "If SKIE doesn't
+# Kotlin tracks the CLAUDE.md §2 floor (2.4.10). SKIE 0.10.14 added support for
+# Kotlin 2.4.10, which is what unblocks this pin. CLAUDE.md §8: "If SKIE doesn't
 # yet support a Kotlin version, we wait. Don't bump Kotlin past SKIE's supported
 # range." So Kotlin and SKIE move in lockstep — never bump Kotlin past SKIE.
-kotlin = "2.3.21"
+# HOLD at 2.4.10: Kotlin 2.4.20 is out, but no SKIE release supports it yet —
+# unblocked by https://github.com/touchlab/SKIE/pull/202 (tracking issue #205).
+# Before that bump: 2.4.20 rejects atomicfu operations inside public inline
+# functions on Kotlin/Native (whatsnew2420, "Breaking changes").
+kotlin = "2.4.10"
 agp = "9.4.1"                  # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2).
-skie = "0.10.12"               # Supports Kotlin 2.3.21.
+skie = "0.10.14"               # Supports Kotlin 2.4.0 and 2.4.10 (not 2.4.20).
 kmmbridge = "1.2.1"            # XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
 dokka = "2.2.0"                # Kotlin API doc generator; Dokka v2 plugin mode (the default since 2.1.0).
 # vanniktech's gradle-maven-publish-plugin — publishes signed artifacts to the
