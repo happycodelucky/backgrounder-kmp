@@ -18,7 +18,7 @@ kotlin = "2.3.21"
 agp = "9.2.0"                  # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2).
 skie = "0.10.12"               # Supports Kotlin 2.3.21.
 kmmbridge = "1.2.1"            # XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
-dokka = "2.0.0"                # Kotlin API doc generator; Dokka v2 task layout.
+dokka = "2.2.0"                # Kotlin API doc generator; Dokka v2 plugin mode (the default since 2.1.0).
 # vanniktech's gradle-maven-publish-plugin — publishes signed artifacts to the
 # Sonatype Central Portal (central.sonatype.com). 0.36.0 is the first release
 # that pins the JDK17 / Gradle 9 / AGP 9 floor we're already on, and the first
@@ -27,7 +27,7 @@ dokka = "2.0.0"                # Kotlin API doc generator; Dokka v2 task layout.
 # community-recommended path. The `mavenPublishing { }` block in
 # backgrounder/build.gradle.kts owns the Central Portal target, POM metadata,
 # and in-memory GPG signing configuration.
-mavenPublish = "0.36.0"
+mavenPublish = "0.37.0"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
