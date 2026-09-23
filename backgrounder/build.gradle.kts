@@ -11,7 +11,6 @@
  * Windows *native* targets (Linux/Windows are served by the jvm target).
  */
 
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -40,6 +39,14 @@ plugins {
     alias(libs.plugins.kmmbridge.github)
 }
 
+// CLAUDE.md §2: the bytecode level is a consumer contract. One catalog key pins
+// it for both the jvm and android targets — never inherited from the build JDK.
+val jvmBytecodeTarget =
+    JvmTarget.fromTarget(
+        libs.versions.jvm.target
+            .get(),
+    )
+
 kotlin {
     // Library code: every public API symbol must carry an explicit visibility
     // modifier (public / internal / private). Without this, a contributor can
@@ -51,18 +58,10 @@ kotlin {
     explicitApi()
 
     // CLAUDE.md §4: applyDefaultHierarchyTemplate. Don't hand-roll source set wiring.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate {
-        // Coalesce iosMain + macosMain into a shared "appleMain" intermediate. The
-        // BGTask coroutine bridge pattern (SupervisorJob + invokeOnCompletion) is
-        // identical between iOS and macOS — see plan §iOS / §macOS.
-        common {
-            group("apple") {
-                withIos()
-                withMacos()
-            }
-        }
-    }
+    // The default template already gives common → native → apple → ios / macos, so
+    // iosMain + macosMain share the "appleMain" intermediate where the BGTask
+    // coroutine bridge (SupervisorJob + invokeOnCompletion) lives.
+    applyDefaultHierarchyTemplate()
 
     // --- Apple targets (CLAUDE.md §1) ---------------------------------------
     // Static framework binaries with a stable bundle id, one per ARM slice
@@ -90,7 +89,6 @@ kotlin {
 
     // --- Android target (CLAUDE.md §1, §4) ----------------------------------
     // Use the new com.android.kotlin.multiplatform.library plugin's android {} block.
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     android {
         namespace = "com.happycodelucky.backgrounder"
         compileSdk =
@@ -108,6 +106,12 @@ kotlin {
         // arm64-v8a only; document this in README.
 
         withHostTestBuilder { /* enables androidUnitTest */ }
+
+        // Left unset, AGP follows the JDK running the build: a newer build JDK
+        // would silently raise the AAR's class-file level.
+        compilerOptions {
+            jvmTarget.set(jvmBytecodeTarget)
+        }
     }
 
     // --- JVM target (desktop / server) ---------------------------------------
@@ -116,29 +120,19 @@ kotlin {
     // jvmMain/.../CoroutineBackedScheduler.kt); persistence of the ephemeral
     // mirror is java.util.prefs via multiplatform-settings. No SKIE, no
     // KMMBridge — the JVM ships through Maven Central only, like Android.
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget.set(jvmBytecodeTarget)
+        }
+    }
 
-    // --- JVM toolchain (CLAUDE.md §2: JVM target 21) ------------------------
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    // --- Compiler options (CLAUDE.md §3) -------------------------------------
     compilerOptions {
         // K2 stable APIs only (CLAUDE.md §3).
         languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
         apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
         // Fail builds on stable-API misuse, not just experimental.
         allWarningsAsErrors.set(false) // bump to true once codebase settles.
-    }
-
-    // Per-target JVM toolchain knobs — pins the jvm() target's bytecode level
-    // (CLAUDE.md §2: JVM target 21). The Android target manages its own level
-    // via the android {} block above.
-    targets.withType<org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget>().configureEach {
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
-        }
     }
 
     sourceSets {

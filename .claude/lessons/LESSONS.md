@@ -41,6 +41,10 @@ review checklist. Entries below are the wider set of bugs that have actually
 landed in this repo — review-catalogue items are listed here as well so a
 single grep finds them.
 
+### B-030 — Android AAR bytecode followed the build JDK, not the pinned JVM target — 2026-09-23
+**Cause:** `jvmTarget` was set via `targets.withType<KotlinJvmTarget>()`, which never matches the AGP KMP `android {}` target, so the AAR inherited the build JDK's level (a `JVM_17` flip moved `jvm` classes to 61; `android` stayed 65). The build-script comment claimed the android block pinned it.
+**Fix:** One `jvm-target` catalog key → `jvmBytecodeTarget`, set in both `jvm { compilerOptions }` and `android { compilerOptions }` in each KMP module. Prove with a flip + class-file majors.
+
 ### B-029 — Renovate's Kotlin hold also froze every kotlinx library — 2026-09-23
 **Cause:** `matchPackagePrefixes: ['org.jetbrains.kotlin']` matches `org.jetbrains.kotlinx:*` too, so coroutines / serialization / atomicfu could never get a Renovate PR.
 **Fix:** Boundary regex `/^org\.jetbrains\.kotlin([.:]|$)/` in `matchPackageNames` (`renovate.json5`). Note: Renovate has never opened a PR here — check the app is installed.
@@ -489,3 +493,8 @@ match against what they're seeing.
 **Symptom:** A JVM `.api` dump written by KGP 2.3 fails against 2.4 with only `public synthetic fun <init>(…DefaultConstructorMarker)` lines removed.
 **Cause:** KGP 2.4's dumper omits synthetic members; the class file still has them (`javap -v -p` shows `ACC_SYNTHETIC`). Dump-format change, not an ABI change. Also: 2.4 removed `abiValidation { enabled }` — call `abiValidation {}` to enable.
 **Unstuck by:** Confirm with `javap`, then regenerate the dump with `updateKotlinAbi`.
+
+### T-011 — `ktlintKotlinScriptCheck` fails on a `build.gradle.kts` edit — 2026-09-23
+**Symptom:** `Expected newline before '.'` on a line like `JvmTarget.fromTarget(libs.versions.jvm.target.get())`.
+**Cause:** ktlint lints module `.kts` scripts too; a chain with 4+ `.` operators must wrap (same reason `libs.versions.android.compile.sdk` is wrapped).
+**Unstuck by:** Hoist the value into one `val` and let `./gradlew ktlintKotlinScriptFormat` wrap it once.
