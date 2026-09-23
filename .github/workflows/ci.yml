@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # mise pins the JDK, Gradle bootstrap binary, gh, and python (see
       # /mise.toml). One install gives CI and local dev the same toolchain.
