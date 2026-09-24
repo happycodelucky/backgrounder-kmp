@@ -1,0 +1,12 @@
+root = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+# Aim for 120 (IDE guide), hard-fail at 140. See CLAUDE.md §3.
+ij_visual_guides = 120
+max_line_length = 140
+ktlint_code_style = ktlint_official
+# Class signature layout is the author's call: ktlint_official would otherwise force every constructor parameter onto
+# its own line, and `unset` flips it to forcing one line whenever it fits. max_line_length still applies.
+ktlint_standard_class-signature = disabled

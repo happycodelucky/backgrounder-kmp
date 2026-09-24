@@ -183,7 +183,9 @@ internal class IOSCoroutineBridge(
                     // contract the existing periodic/one-shot paths already document.
                     val gateResult = gate.awaitReachable(networkRequired, capabilities.maxExecutionTime)
                     if (gateResult is ReachabilityGate.GateResult.TimedOut) {
-                        tagged.i { "reachability gate timed out (requirement=$networkRequired, waited=${gateResult.waited}); deferring as Retry" }
+                        tagged.i {
+                            "reachability gate timed out (requirement=$networkRequired, waited=${gateResult.waited}); deferring as Retry"
+                        }
                         emitter.emit(
                             MonitorEvent.AttemptDeferred(
                                 taskId = taskId,

@@ -506,3 +506,8 @@ match against what they're seeing.
 **Symptom:** `Expected newline before '.'` on a line like `JvmTarget.fromTarget(libs.versions.jvm.target.get())`.
 **Cause:** ktlint lints module `.kts` scripts too; a chain with 4+ `.` operators must wrap (same reason `libs.versions.android.compile.sdk` is wrapped).
 **Unstuck by:** Hoist the value into one `val` and let `./gradlew ktlintKotlinScriptFormat` wrap it once.
+
+### T-012 — `main` CI red on ktlint after a PR merged with a failing `build` check — 2026-09-23
+**Symptom:** `ktlintCommonMainSourceSetCheck` fails (`class-signature` wants a one-param `data class` split across lines); fixing it exposes a hidden `iosMain` `max-line-length` failure.
+**Cause:** PR #40 merged on red; Gradle stops at the first failed ktlint task. The wrap came from `ktlint_official` defaults — there was no `.editorconfig`.
+**Unstuck by:** `./gradlew ktlintCheck --continue` lists everything. Style is now pinned in `.editorconfig` (140 hard limit, `class-signature` rule disabled) — change it there, not per file.
