@@ -506,3 +506,8 @@ match against what they're seeing.
 **Symptom:** `Expected newline before '.'` on a line like `JvmTarget.fromTarget(libs.versions.jvm.target.get())`.
 **Cause:** ktlint lints module `.kts` scripts too; a chain with 4+ `.` operators must wrap (same reason `libs.versions.android.compile.sdk` is wrapped).
 **Unstuck by:** Hoist the value into one `val` and let `./gradlew ktlintKotlinScriptFormat` wrap it once.
+
+### T-012 — `main` CI red on ktlint after a PR merged with a failing `build` check — 2026-09-23
+**Symptom:** `ktlintCommonMainSourceSetCheck` fails on `main` (`class-signature`: newline expected after `(`) for a one-param `data class`; fixing it exposes a second failure in `iosMain` (`function-literal` / `max-line-length`).
+**Cause:** PR #40 merged despite its red `build` check; Gradle stops at the first failed ktlint task, so CI only showed one of two.
+**Unstuck by:** `./gradlew ktlintCheck --continue` to list every violation, then `./gradlew ktlintFormat`. Don't merge on red CI.
