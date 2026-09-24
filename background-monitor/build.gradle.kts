@@ -37,9 +37,9 @@ plugins {
     // public types that the monitor's API surface references. If pure-Swift
     // consumption of the monitor surface is ever needed, attach a second
     // target.binaries.framework here and re-enable SKIE.
-    // Dokka: the root build aggregates this module's HTML into docs/api/.
-    alias(libs.plugins.dokka)
     alias(libs.plugins.maven.publish)
+    // Dokka v2: aggregated by the root `copyDokkaToDocs` into docs/api/.
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
