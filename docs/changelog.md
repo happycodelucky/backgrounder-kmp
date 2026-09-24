@@ -9,6 +9,10 @@
 - The XCFramework's built-in minimum OS moves from iOS 14 / macOS 11 to iOS 15 / macOS 12, Kotlin 2.4's new default. `Package.swift` already requires iOS 18 / macOS 15, so nothing changes for SPM consumers.
 - `kotlinx-datetime` and `kotlinx-collections-immutable` are no longer runtime dependencies; the library never used them. If your app relied on getting them transitively, declare them yourself.
 
+### Docs: API reference is linked and complete
+
+- The Dokka API reference now has an **API reference** tab in the site navigation and a link from the Overview page. It previously built to an empty "All modules" page (the root project's Gradle coordinates collided with `:backgrounder`'s, so the aggregate resolved to itself); it now covers `backgrounder` and `background-monitor`.
+
 ### `Backgrounder` class renamed to `BackgroundTaskManager`
 
 - The entry-point class is now `BackgroundTaskManager`; `Backgrounder` remains the library, Maven group, framework module, and Gradle plugin name. Two reasons: the class name now says what the object is, and the old name collided with the Apple framework module, which made SKIE expose it to Swift as `Backgrounder_`. Swift now reads `BackgroundTaskManager.shared` after `import Backgrounder`. Library-branded siblings (`BackgrounderEventListener`, `BackgrounderInitializer`, `BackgrounderWorkerFactory`) keep their names.

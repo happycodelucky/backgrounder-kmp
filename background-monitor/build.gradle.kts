@@ -37,6 +37,8 @@ plugins {
     // consumption of the monitor surface is ever needed, attach a second
     // target.binaries.framework here and re-enable SKIE.
     alias(libs.plugins.maven.publish)
+    // Dokka v2: aggregated by the root `copyDokkaToDocs` into docs/api/.
+    alias(libs.plugins.dokka)
 }
 
 // CLAUDE.md §2: the bytecode level is a consumer contract. One catalog key pins

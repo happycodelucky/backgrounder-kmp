@@ -31,6 +31,12 @@ allprojects {
     version = providers.gradleProperty("version").getOrElse("0.1.0-SNAPSHOT")
 }
 
+// The root is never published, but Gradle still identifies it by group:name:version
+// during dependency resolution. rootProject.name == "backgrounder" collides with
+// :backgrounder's coordinates, so `dokka(project(":backgrounder"))` below silently
+// resolved to the root itself and the API reference came out empty (LESSONS B-029).
+group = "com.happycodelucky.backgrounder.build"
+
 subprojects {
     // ktlint wires onto whichever Kotlin plugin is present. CLAUDE.md §3:
     // "ktlint must pass." (detekt waits for a stable 2.x — see CLAUDE.md §3.)
@@ -60,25 +66,30 @@ subprojects {
     }
 }
 
-// Apply Dokka to the :backgrounder module and aggregate into docs/api/.
+// The root is the Dokka aggregator: moduleName here titles the multi-module
+// publication; each published module keeps its own name (its Maven artifact id).
 dokka {
     moduleName.set("Backgrounder")
 }
 
 dependencies {
-    // Aggregate Dokka HTML from :backgrounder into the root build (Dokka v2 pattern).
+    // Aggregate Dokka HTML from every published library module (Dokka v2 pattern).
+    // :backgrounder-gradle-plugin is build tooling, not consumer API — left out.
     dokka(project(":backgrounder"))
+    dokka(project(":background-monitor"))
 }
 
 /**
- * Copies Dokka v2 HTML output into docs/api/, where mkdocs picks it up.
+ * Mirrors Dokka v2 HTML output into docs/api/, where mkdocs picks it up.
  *
  * The aggregated HTML lives at build/dokka/html after dokkaGeneratePublicationHtml.
  * mkdocs looks at docs/api/ when it builds the site; CI runs Dokka before mkdocs.
+ * Sync rather than Copy so stale pages from an earlier run can't mask an empty
+ * generation — docs/check.py asserts the reference is actually populated.
  */
-tasks.register<Copy>("copyDokkaToDocs") {
+tasks.register<Sync>("copyDokkaToDocs") {
     group = "documentation"
-    description = "Copies aggregated Dokka HTML into docs/api/ for mkdocs."
+    description = "Mirrors aggregated Dokka HTML into docs/api/ for mkdocs."
 
     dependsOn("dokkaGeneratePublicationHtml")
     from(layout.buildDirectory.dir("dokka/html"))

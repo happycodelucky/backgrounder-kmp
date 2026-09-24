@@ -41,13 +41,17 @@ review checklist. Entries below are the wider set of bugs that have actually
 landed in this repo — review-catalogue items are listed here as well so a
 single grep finds them.
 
-### B-030 — Android AAR bytecode followed the build JDK, not the pinned JVM target — 2026-09-23
+### B-031 — Android AAR bytecode followed the build JDK, not the pinned JVM target — 2026-09-23
 **Cause:** `jvmTarget` was set via `targets.withType<KotlinJvmTarget>()`, which never matches the AGP KMP `android {}` target, so the AAR inherited the build JDK's level (a `JVM_17` flip moved `jvm` classes to 61; `android` stayed 65). The build-script comment claimed the android block pinned it.
 **Fix:** One `jvm-target` catalog key → `jvmBytecodeTarget`, set in both `jvm { compilerOptions }` and `android { compilerOptions }` in each KMP module. Prove with a flip + class-file majors.
 
-### B-029 — Renovate's Kotlin hold also froze every kotlinx library — 2026-09-23
+### B-030 — Renovate's Kotlin hold also froze every kotlinx library — 2026-09-23
 **Cause:** `matchPackagePrefixes: ['org.jetbrains.kotlin']` matches `org.jetbrains.kotlinx:*` too, so coroutines / serialization / atomicfu could never get a Renovate PR.
 **Fix:** Boundary regex `/^org\.jetbrains\.kotlin([.:]|$)/` in `matchPackageNames` (`renovate.json5`). Note: Renovate has never opened a PR here — check the app is installed.
+
+### B-029 — Dokka API reference shipped empty: root project shared `:backgrounder`'s coordinates — 2026-09-23
+**Cause:** `rootProject.name = "backgrounder"` + `allprojects { group }` gave the root the same `group:name:version` as `:backgrounder`. Gradle matches project components by GAV, so the root's `dokka(project(":backgrounder"))` resolved to *itself* (`dependencies` shows `project :backgrounder -> root project :`) and aggregated its own empty module. Not a Dokka `modulePath` issue — Dokka 2.0/2.2 both affected.
+**Fix:** Root overrides `group = "com.happycodelucky.backgrounder.build"` (unpublished). `copyDokkaToDocs` is now a `Sync`; `docs/check.py` asserts each module is listed in `docs/api/index.html` and meets a page-count floor. `:background-monitor` aggregated too.
 
 ### B-028 — Release failed on `compileCommonMainKotlinMetadata`; CI `check` never runs it — 2026-09-19
 **Cause:** `LibraryScopeInstantRunner` imported `kotlin.coroutines.cancellation.CancellationException` and passed it to `Job.cancel` / `CoroutineScope.cancel`, which take `kotlinx.coroutines.CancellationException`. Per-target compiles accept it (both alias the same platform class) but the metadata compile treats them as distinct expect classes. `check` doesn't run metadata compilation; only publishing does, so it surfaced in the release workflow.

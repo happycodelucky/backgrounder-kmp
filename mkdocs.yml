@@ -133,6 +133,10 @@ nav:
     - platforms/macos.md
     - platforms/jvm.md
     - platforms/force-quit.md
+  # Dokka HTML mirrored in by `copyDokkaToDocs` (mise run docs:dokka). A nav
+  # entry that matches a real file resolves to a Page, so --strict stays green;
+  # mkdocs copies the HTML verbatim rather than rendering it.
+  - API reference: api/index.html
   - Changelog: changelog.md
 
 # Strict mode: fail the build on a broken link or a dead anchor.
