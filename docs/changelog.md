@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs: API reference is linked and complete
+
+- The Dokka API reference now has an **API reference** tab in the site navigation and a link from the Overview page. It previously built to an empty "All modules" page (the root project's Gradle coordinates collided with `:backgrounder`'s, so the aggregate resolved to itself); it now covers `backgrounder` and `background-monitor`.
+
 ### `Backgrounder` class renamed to `BackgroundTaskManager`
 
 - The entry-point class is now `BackgroundTaskManager`; `Backgrounder` remains the library, Maven group, framework module, and Gradle plugin name. Two reasons: the class name now says what the object is, and the old name collided with the Apple framework module, which made SKIE expose it to Swift as `Backgrounder_`. Swift now reads `BackgroundTaskManager.shared` after `import Backgrounder`. Library-branded siblings (`BackgrounderEventListener`, `BackgrounderInitializer`, `BackgrounderWorkerFactory`) keep their names.
