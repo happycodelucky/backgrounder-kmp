@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Built with Kotlin 2.4
+
+- The library is now compiled with Kotlin 2.4.10 at language and API version 2.4. **Kotlin Multiplatform consumers need Kotlin 2.4 or newer**: a klib can only be read by a compiler at least as new as its language version. JVM and Android consumers need Kotlin 2.3 or newer. Swift / SPM consumers are unaffected.
+- No public API change. The Kotlin ABI (klib and JVM) and the Swift / Objective-C headers are identical to the previous build.
+- The XCFramework's built-in minimum OS moves from iOS 14 / macOS 11 to iOS 15 / macOS 12, Kotlin 2.4's new default. `Package.swift` already requires iOS 18 / macOS 15, so nothing changes for SPM consumers.
+- `kotlinx-datetime` and `kotlinx-collections-immutable` are no longer runtime dependencies; the library never used them. If your app relied on getting them transitively, declare them yourself.
+
 ### Docs: API reference is linked and complete
 
 - The Dokka API reference now has an **API reference** tab in the site navigation and a link from the Overview page. It previously built to an empty "All modules" page (the root project's Gradle coordinates collided with `:backgrounder`'s, so the aggregate resolved to itself); it now covers `backgrounder` and `background-monitor`.

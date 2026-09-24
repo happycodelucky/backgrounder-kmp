@@ -17,7 +17,7 @@ delivered as a GitHub Release asset (see [Apple-side SPM](#apple-side-spm) below
 | iOS       | iOS 18.0                                              |
 | macOS     | macOS 15.0 (Apple Silicon)                            |
 | JVM       | Java 21 (desktop / server, any architecture)          |
-| Toolchain | Kotlin 2.3.x (K2), Gradle 9.x, AGP 9.x, JVM target 21 |
+| Toolchain | Kotlin 2.4+ (K2), Gradle 9.x, AGP 9.x, JVM target 21 |
 
 These are deliberately tight floors — see [Concepts → Architecture](concepts/architecture.md)
 for why we don't ship Catalyst, x86, watchOS, or tvOS.

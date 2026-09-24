@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/macOS-15%2B-blue.svg?style=for-the-badge&logo=apple" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white" alt="Android 11+">
   <img src="https://img.shields.io/badge/JVM-21%2B-orange.svg?style=for-the-badge&logo=openjdk&logoColor=white" alt="JVM 21+">
-  <img src="https://img.shields.io/badge/Kotlin-2.3-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.3">
+  <img src="https://img.shields.io/badge/Kotlin-2.4-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin 2.4">
   <a href="https://github.com/happycodelucky/backgrounder-kmp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder-kmp/ci.yml?style=for-the-badge&label=ci" alt="CI"></a>
   <a href="https://github.com/happycodelucky/backgrounder-kmp/actions/workflows/docs.yml"><img src="https://img.shields.io/github/actions/workflow/status/happycodelucky/backgrounder-kmp/docs.yml?style=for-the-badge&label=docs" alt="Docs"></a>
   <a href="https://github.com/happycodelucky/backgrounder-kmp/releases/latest"><img src="https://img.shields.io/github/v/release/happycodelucky/backgrounder-kmp?style=for-the-badge" alt="Release"></a>

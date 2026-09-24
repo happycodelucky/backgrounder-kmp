@@ -39,7 +39,7 @@ group = "com.happycodelucky.backgrounder.build"
 
 subprojects {
     // ktlint wires onto whichever Kotlin plugin is present. CLAUDE.md §3:
-    // "ktlint + detekt must pass."
+    // "ktlint must pass." (detekt waits for a stable 2.x — see CLAUDE.md §3.)
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
         apply(plugin = "org.jlleitschuh.gradle.ktlint")
     }

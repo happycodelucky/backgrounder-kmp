@@ -21,16 +21,19 @@
       // Kotlin is bounded above by SKIE's supported range (CLAUDE.md §8:
       // "If SKIE doesn't yet support a Kotlin version, we wait"). A Kotlin
       // bump must be a deliberate, human-paired change with the SKIE pin —
-      // Renovate must not propose it on its own. The prefix also covers the
+      // Renovate must not propose it on its own. The pattern also covers the
       // kotlin-serialization plugin, which versions in lockstep with Kotlin.
-      matchPackagePrefixes: ['org.jetbrains.kotlin'],
+      // Anchored at a `.`/`:` boundary: a bare `org.jetbrains.kotlin` prefix
+      // also matches `org.jetbrains.kotlinx`, which would silently freeze
+      // coroutines / serialization / atomicfu too.
+      matchPackageNames: ['/^org\\.jetbrains\\.kotlin([.:]|$)/'],
       enabled: false,
       description: 'Kotlin pin is SKIE-bound; bump manually together with the skie version.',
     },
     {
       // SKIE bumps are welcome — they're what eventually unlocks a Kotlin
       // bump. Label them so the paired manual Kotlin review is prompted.
-      matchPackagePrefixes: ['co.touchlab.skie'],
+      matchPackageNames: ['/^co\\.touchlab\\.skie([.:]|$)/'],
       labels: ['skie', 'check-kotlin-pin'],
     },
   ],

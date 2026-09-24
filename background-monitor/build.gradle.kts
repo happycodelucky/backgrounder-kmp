@@ -22,7 +22,6 @@
  * render the monitor's output in their own SwiftUI / Compose / web UI.
  */
 
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -42,27 +41,30 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
+// CLAUDE.md §2: the bytecode level is a consumer contract. One catalog key pins
+// it for both the jvm and android targets — never inherited from the build JDK.
+val jvmBytecodeTarget =
+    JvmTarget.fromTarget(
+        libs.versions.jvm.target
+            .get(),
+    )
+
 kotlin {
     explicitApi()
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate {
-        common {
-            group("apple") {
-                withIos()
-                withMacos()
-            }
-        }
-    }
+    applyDefaultHierarchyTemplate()
 
     iosArm64()
     iosSimulatorArm64()
     macosArm64()
     // Architecture-neutral JVM (desktop / server) — matches the core's target
     // roster so a JVM consumer of :backgrounder can layer the monitor on top.
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget.set(jvmBytecodeTarget)
+        }
+    }
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     android {
         namespace = "com.happycodelucky.backgrounder.monitor"
         compileSdk =
@@ -75,22 +77,15 @@ kotlin {
                 .toInt()
 
         withHostTestBuilder { /* enables androidUnitTest */ }
-    }
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    compilerOptions {
-        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3)
-        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3)
-    }
-
-    targets.withType<org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget>().configureEach {
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+        compilerOptions {
+            jvmTarget.set(jvmBytecodeTarget)
         }
+    }
+
+    compilerOptions {
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_4)
     }
 
     sourceSets {

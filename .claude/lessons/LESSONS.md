@@ -41,6 +41,14 @@ review checklist. Entries below are the wider set of bugs that have actually
 landed in this repo — review-catalogue items are listed here as well so a
 single grep finds them.
 
+### B-031 — Android AAR bytecode followed the build JDK, not the pinned JVM target — 2026-09-23
+**Cause:** `jvmTarget` was set via `targets.withType<KotlinJvmTarget>()`, which never matches the AGP KMP `android {}` target, so the AAR inherited the build JDK's level (a `JVM_17` flip moved `jvm` classes to 61; `android` stayed 65). The build-script comment claimed the android block pinned it.
+**Fix:** One `jvm-target` catalog key → `jvmBytecodeTarget`, set in both `jvm { compilerOptions }` and `android { compilerOptions }` in each KMP module. Prove with a flip + class-file majors.
+
+### B-030 — Renovate's Kotlin hold also froze every kotlinx library — 2026-09-23
+**Cause:** `matchPackagePrefixes: ['org.jetbrains.kotlin']` matches `org.jetbrains.kotlinx:*` too, so coroutines / serialization / atomicfu could never get a Renovate PR.
+**Fix:** Boundary regex `/^org\.jetbrains\.kotlin([.:]|$)/` in `matchPackageNames` (`renovate.json5`). Note: Renovate has never opened a PR here — check the app is installed.
+
 ### B-029 — Dokka API reference shipped empty: root project shared `:backgrounder`'s coordinates — 2026-09-23
 **Cause:** `rootProject.name = "backgrounder"` + `allprojects { group }` gave the root the same `group:name:version` as `:backgrounder`. Gradle matches project components by GAV, so the root's `dokka(project(":backgrounder"))` resolved to *itself* (`dependencies` shows `project :backgrounder -> root project :`) and aggregated its own empty module. Not a Dokka `modulePath` issue — Dokka 2.0/2.2 both affected.
 **Fix:** Root overrides `group = "com.happycodelucky.backgrounder.build"` (unpublished). `copyDokkaToDocs` is now a `Sync`; `docs/check.py` asserts each module is listed in `docs/api/index.html` and meets a page-count floor. `:background-monitor` aggregated too.
@@ -342,6 +350,16 @@ Named after Apple's plist key (not `@BackgroundTaskId`) so nobody reads it as re
 **Why over the obvious alternative:** Renaming the framework module (`BackgrounderKit`) would have kept `Backgrounder.shared` in Swift but touched KMMBridge, `Package.swift`, and every consumer's `import`. The class rename removes the collision at the source, reads better (`BackgroundTaskManager.shared` says what it is), and keeps the brand on the module where it belongs.
 **Ref:** `BackgroundTaskManager.kt`, T-009.
 
+### D-031 — Unused dependencies removed; detekt deferred to a stable 2.x — 2026-09-23
+**Decision:** Dropped `kotlinx-datetime` + `kotlinx-collections-immutable` (on commonMain, zero imports — shipped as consumer runtime deps), `kermit-test`, and the dead `kotlinx-io` / `kotest` / `detekt` pins (N-006). CLAUDE.md §3 now says ktlint only.
+**Why over the obvious alternative:** Wiring detekt 1.23.x means an analyzer that embeds Kotlin 2.0 against 2.4 sources; 2.x is alpha. A pin that isn't applied only pretends there's a gate.
+**Ref:** CLAUDE.md §3.
+
+### D-032 — Kotlin 2.4.10 at language/API 2.4; 2.4.20 held for SKIE — 2026-09-23
+**Decision:** Compiler 2.4.10 + SKIE 0.10.14 (supports 2.4.0/2.4.10 only), `languageVersion`/`apiVersion` 2.4 on the published KMP modules. 2.4.20 waits for touchlab/SKIE#202; its atomicfu-in-public-inline ban on Native needs an audit first.
+**Why over the obvious alternative:** Keeping language 2.3 would have kept KMP consumers on Kotlin 2.3 (klibs need a compiler ≥ the library's language version), but CLAUDE.md §3 tracks current stable. KMP consumers now need Kotlin ≥ 2.4; JVM ≥ 2.3; SPM unaffected. Klib ABI, JVM ABI and ObjC/Swift headers were diffed: no change. Gradle 9.7.1 / AGP 9.4.1 sit outside KGP 2.4.10's *tested* range (≤ 9.5.0 / ≤ 9.1.0) and Xcode 27 is past the documented 26.4 — the full gate + XCFramework build pass on all three.
+**Ref:** `gradle/libs.versions.toml` (kotlin pin comment).
+
 ---
 
 ## NEVER DO (N)
@@ -400,6 +418,7 @@ project — beyond CLAUDE.md §13's general hard rules. Section here is for the
 **Why:** SKIE lags Kotlin releases by a few days. Bumping past the supported range disables SKIE; the framework falls back to default K/N ObjC export and the Swift surface regresses dramatically.
 **Ref:** CLAUDE.md §2, §8.
 **Lockstep example (2026-06):** reachable 0.13.0 was built on Kotlin 2.3.21, so the consumer bump pulled Kotlin 2.3.20→2.3.21 — which required SKIE 0.10.11→0.10.12 (its sole change is "Support for Kotlin 2.3.21"). Kotlin and SKIE moved together; this is the rule working as intended, not an exception to it.
+**Hold example (2026-09):** SKIE 0.10.14 supports 2.4.0/2.4.10, not 2.4.20 → landed on 2.4.10; 2.4.20 waits for touchlab/SKIE#202. Check `SKIE/gradle.properties` `versionSupport.kotlin` *at the release tag*, not `main`.
 
 ### N-011 — Never read wall-clock time inside dispatcher / scheduler logic — 2026-05-10
 **Don't:** Call `Clock.System.now()` from code under test that uses `runTest` virtual time.
@@ -473,3 +492,13 @@ match against what they're seeing.
 **Cause:** Likely a previous **non-dry-run** publish or a leftover staged Portal deployment that was auto-released. The Central Portal is the source of truth.
 **Unstuck by:** Check `central.sonatype.com` → Deployments. If a stuck deployment exists, Drop it. Then bump the version literal in `build.gradle.kts` (humans bump major/minor; the workflow bumps patch). See D-009.
 **Ref:** PR #19.
+
+### T-010 — `checkKotlinAbi` fails after a Kotlin bump, but only `synthetic` members vanished — 2026-09-23
+**Symptom:** A JVM `.api` dump written by KGP 2.3 fails against 2.4 with only `public synthetic fun <init>(…DefaultConstructorMarker)` lines removed.
+**Cause:** KGP 2.4's dumper omits synthetic members; the class file still has them (`javap -v -p` shows `ACC_SYNTHETIC`). Dump-format change, not an ABI change. Also: 2.4 removed `abiValidation { enabled }` — call `abiValidation {}` to enable.
+**Unstuck by:** Confirm with `javap`, then regenerate the dump with `updateKotlinAbi`.
+
+### T-011 — `ktlintKotlinScriptCheck` fails on a `build.gradle.kts` edit — 2026-09-23
+**Symptom:** `Expected newline before '.'` on a line like `JvmTarget.fromTarget(libs.versions.jvm.target.get())`.
+**Cause:** ktlint lints module `.kts` scripts too; a chain with 4+ `.` operators must wrap (same reason `libs.versions.android.compile.sdk` is wrapped).
+**Unstuck by:** Hoist the value into one `val` and let `./gradlew ktlintKotlinScriptFormat` wrap it once.

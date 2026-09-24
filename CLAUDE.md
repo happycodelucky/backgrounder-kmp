@@ -28,7 +28,7 @@ Use the **latest stable**. Never EAP, RC, or beta on `main`. All versions live i
 
 Floors as of last edit:
 
-- Kotlin 2.3.21
+- Kotlin 2.4.10 (2.4.20 is held until SKIE supports it — see the `kotlin` pin in `gradle/libs.versions.toml`)
 - Gradle 9.x
 - AGP 9.x with `com.android.kotlin.multiplatform.library` (use the new `android` block, not `androidTarget`)
 - JVM target 21
@@ -42,7 +42,8 @@ K2 only. No K1 fallback.
 
 ## 3. Language standards
 
-- `languageVersion` and `apiVersion` set to current stable.
+- `languageVersion` and `apiVersion` set to current stable. This is also the minimum Kotlin a KMP consumer needs to read our klibs, so moving it is a consumer-facing change: note it in `docs/changelog.md`.
+- Explicit backing fields are stable from 2.4, but keep `asStateFlow()` on public `StateFlow` properties. A backing field hands consumers the `MutableStateFlow` instance, which they can cast back and mutate.
 - Stable APIs only. Experimental APIs require an explicit `@OptIn` with a one-line comment explaining why.
 - No `!!` in production code.
 - `internal` by default. Widen visibility only when needed.
@@ -50,7 +51,7 @@ K2 only. No K1 fallback.
 - `kotlin.time` for durations. `kotlin.uuid.Uuid` for UUIDs.
 - KDoc on all public API. Comments explain *why*, not *what*.
 - 4-space indent, 120-col max, trailing commas on multi-line.
-- ktlint + detekt must pass.
+- ktlint must pass. detekt is not wired yet: 1.23.x embeds Kotlin 2.0 and 2.x is still alpha. Wire it once detekt 2.x ships stable.
 
 **Apple platform names — preserve their casing.** `iOS`, `macOS`, `tvOS`, `watchOS`, `iPadOS`, `visionOS` are the canonical spellings; never lowercase the trailing acronym in identifiers, file names, types, packages, or comments. The standard Kotlin convention of camel-casing acronyms (`HtmlParser`, not `HTMLParser`) does **not** apply to these — they're Apple platform brand names and we keep them recognisable.
 

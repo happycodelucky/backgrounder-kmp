@@ -10,15 +10,19 @@
 [versions]
 
 # --- Toolchain --------------------------------------------------------------
-# Kotlin tracks the CLAUDE.md §2 floor (2.3.21). SKIE 0.10.12 added support for
-# Kotlin 2.3.21, which is what unblocks this pin. CLAUDE.md §8: "If SKIE doesn't
+# Kotlin tracks the CLAUDE.md §2 floor (2.4.10). SKIE 0.10.14 added support for
+# Kotlin 2.4.10, which is what unblocks this pin. CLAUDE.md §8: "If SKIE doesn't
 # yet support a Kotlin version, we wait. Don't bump Kotlin past SKIE's supported
 # range." So Kotlin and SKIE move in lockstep — never bump Kotlin past SKIE.
-kotlin = "2.3.21"
-agp = "9.2.0"                  # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2).
-skie = "0.10.12"               # Supports Kotlin 2.3.21.
+# HOLD at 2.4.10: Kotlin 2.4.20 is out, but no SKIE release supports it yet —
+# unblocked by https://github.com/touchlab/SKIE/pull/202 (tracking issue #205).
+# Before that bump: 2.4.20 rejects atomicfu operations inside public inline
+# functions on Kotlin/Native (whatsnew2420, "Breaking changes").
+kotlin = "2.4.10"
+agp = "9.4.1"                  # com.android.kotlin.multiplatform.library variant (CLAUDE.md §2).
+skie = "0.10.14"               # Supports Kotlin 2.4.0 and 2.4.10 (not 2.4.20).
 kmmbridge = "1.2.1"            # XCFramework → GitHub Release asset → SPM (CLAUDE.md §9).
-dokka = "2.0.0"                # Kotlin API doc generator; Dokka v2 task layout.
+dokka = "2.2.0"                # Kotlin API doc generator; Dokka v2 plugin mode (the default since 2.1.0).
 # vanniktech's gradle-maven-publish-plugin — publishes signed artifacts to the
 # Sonatype Central Portal (central.sonatype.com). 0.36.0 is the first release
 # that pins the JDK17 / Gradle 9 / AGP 9 floor we're already on, and the first
@@ -27,7 +31,7 @@ dokka = "2.0.0"                # Kotlin API doc generator; Dokka v2 task layout.
 # community-recommended path. The `mavenPublishing { }` block in
 # backgrounder/build.gradle.kts owns the Central Portal target, POM metadata,
 # and in-memory GPG signing configuration.
-mavenPublish = "0.36.0"
+mavenPublish = "0.37.0"
 
 # --- Android SDK ------------------------------------------------------------
 android-compile-sdk = "36"
@@ -40,19 +44,16 @@ macos-deployment-target = "15.0"
 
 # --- kotlinx ----------------------------------------------------------------
 kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.10.0"
-kotlinx-datetime = "0.7.1"
-kotlinx-io = "0.9.0"
-kotlinx-collections-immutable = "0.4.0"
+kotlinx-serialization = "1.11.0"
 kotlinx-atomicfu = "0.33.0"
 
 # --- AndroidX ---------------------------------------------------------------
-androidx-work = "2.11.2"
+androidx-work = "2.12.0"
 androidx-startup = "1.2.0"
 
 # --- Other libraries --------------------------------------------------------
 multiplatform-settings = "1.3.0"
-kermit = "2.0.8"
+kermit = "2.2.0"
 # Network-reachability predicate for the WorkConstraints.networkRequired gate.
 # `:reachable` is the production artifact (commonMain). `:reachable-testing`
 # (commonTest) ships the upstream-blessed FakeReachability + withFakeReachability
@@ -67,7 +68,6 @@ reachable = "0.14.0"
 
 # --- Testing ----------------------------------------------------------------
 turbine = "1.2.1"
-kotest = "6.1.11"
 
 # --- Gradle plugin (:backgrounder-gradle-plugin) -------------------------
 # ASM reads the compiled class files for `@BackgroundTaskId` constants. Gradle
@@ -78,7 +78,6 @@ asm = "9.10.1"
 # --- Lint ------------------------------------------------------------------
 ktlint = "1.8.0"               # The ktlint tool itself.
 ktlintGradle = "14.2.0"        # The org.jlleitschuh.gradle.ktlint Gradle plugin.
-detekt = "1.23.7"
 
 
 [libraries]
@@ -88,8 +87,6 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
-kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinx-collections-immutable" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "kotlinx-atomicfu" }
 
 # --- AndroidX ---------------------------------------------------------------
@@ -103,13 +100,11 @@ multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
 multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatform-settings" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
-kermit-test = { module = "co.touchlab:kermit-test", version.ref = "kermit" }
 reachable = { module = "com.happycodelucky.reachable:reachable", version.ref = "reachable" }
 reachable-testing = { module = "com.happycodelucky.reachable:reachable-testing", version.ref = "reachable" }
 
 # --- Testing ----------------------------------------------------------------
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
-kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 
 
