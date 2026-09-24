@@ -61,9 +61,7 @@ internal class ReachabilityGate(
          * `DeferralReason.ReachabilityTimeout.waited` so observers see the real
          * hold time, not the raw execution budget.
          */
-        public data class TimedOut(
-            public val waited: Duration,
-        ) : GateResult
+        public data class TimedOut(public val waited: Duration) : GateResult
     }
 
     /**

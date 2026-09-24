@@ -50,7 +50,7 @@ K2 only. No K1 fallback.
 - `data class`, `value class`, `sealed interface` over open hierarchies. Use `value class` for typed IDs and units — free at runtime.
 - `kotlin.time` for durations. `kotlin.uuid.Uuid` for UUIDs.
 - KDoc on all public API. Comments explain *why*, not *what*.
-- 4-space indent, 120-col max, trailing commas on multi-line.
+- 4-space indent, aim for 120 cols, hard max 140 (`.editorconfig`), trailing commas on multi-line. Class signature wrapping is the author's call (ktlint doesn't enforce it).
 - ktlint must pass. detekt is not wired yet: 1.23.x embeds Kotlin 2.0 and 2.x is still alpha. Wire it once detekt 2.x ships stable.
 
 **Apple platform names — preserve their casing.** `iOS`, `macOS`, `tvOS`, `watchOS`, `iPadOS`, `visionOS` are the canonical spellings; never lowercase the trailing acronym in identifiers, file names, types, packages, or comments. The standard Kotlin convention of camel-casing acronyms (`HtmlParser`, not `HTMLParser`) does **not** apply to these — they're Apple platform brand names and we keep them recognisable.

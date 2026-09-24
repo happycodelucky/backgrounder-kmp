@@ -508,6 +508,6 @@ match against what they're seeing.
 **Unstuck by:** Hoist the value into one `val` and let `./gradlew ktlintKotlinScriptFormat` wrap it once.
 
 ### T-012 — `main` CI red on ktlint after a PR merged with a failing `build` check — 2026-09-23
-**Symptom:** `ktlintCommonMainSourceSetCheck` fails on `main` (`class-signature`: newline expected after `(`) for a one-param `data class`; fixing it exposes a second failure in `iosMain` (`function-literal` / `max-line-length`).
-**Cause:** PR #40 merged despite its red `build` check; Gradle stops at the first failed ktlint task, so CI only showed one of two.
-**Unstuck by:** `./gradlew ktlintCheck --continue` to list every violation, then `./gradlew ktlintFormat`. Don't merge on red CI.
+**Symptom:** `ktlintCommonMainSourceSetCheck` fails (`class-signature` wants a one-param `data class` split across lines); fixing it exposes a hidden `iosMain` `max-line-length` failure.
+**Cause:** PR #40 merged on red; Gradle stops at the first failed ktlint task. The wrap came from `ktlint_official` defaults — there was no `.editorconfig`.
+**Unstuck by:** `./gradlew ktlintCheck --continue` lists everything. Style is now pinned in `.editorconfig` (140 hard limit, `class-signature` rule disabled) — change it there, not per file.
