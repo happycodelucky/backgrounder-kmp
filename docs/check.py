@@ -2,7 +2,8 @@
 """
 Validate the docs/ tree for invariants `mkdocs build --strict` doesn't enforce.
 
-CI runs this after the mkdocs build, so doc drift fails the build, not the user.
+CI runs this after `docs:dokka` and before the mkdocs build, so doc drift fails
+the build, not the user.
 
 Invariants:
   1. Every .md file under docs/ (except generated api/) is referenced from
@@ -10,6 +11,9 @@ Invariants:
   2. Every recipe page has at least one fenced code block.
   3. Every platform page (except force-quit.md) has a tabbed launch-sequence
      block (=== "Android" / iOS / macOS).
+  4. The Dokka API reference under docs/api/ is populated: the all-modules
+     index links every published module, and each module has real pages.
+     Requires `mise run docs:dokka` to have run first (CI does).
 
 Exits 0 on success, non-zero with a list of failures otherwise.
 """
@@ -23,6 +27,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
 MKDOCS_YML = REPO_ROOT / "mkdocs.yml"
+API_DIR = DOCS_DIR / "api"
+
+# Published modules aggregated by the root `copyDokkaToDocs` task, mapped to a
+# floor on HTML pages. Floors sit well below the real counts (~340 / ~15 as of
+# 2026-09) — they catch "empty" or "wrong module aggregated", not API churn.
+API_MODULES = {
+    "backgrounder": 100,
+    "background-monitor": 5,
+}
 
 
 def collect_md_files() -> set[Path]:
@@ -88,11 +101,35 @@ def check_platforms_have_tabs(failures: list[str]) -> None:
             )
 
 
+def check_api_reference_populated(failures: list[str]) -> None:
+    """Dokka can "succeed" while aggregating nothing — an all-modules index
+    reading "All modules:" with an empty list (see LESSONS B-029). Assert the
+    output actually contains each module."""
+    index = API_DIR / "index.html"
+    if not index.is_file():
+        failures.append(
+            "API reference missing: docs/api/index.html not found "
+            "(run `mise run docs:dokka` first)"
+        )
+        return
+    index_html = index.read_text()
+    for module, min_pages in API_MODULES.items():
+        if f'href="{module}/index.html"' not in index_html:
+            failures.append(f"API reference index does not list module: {module}")
+        pages = sum(1 for _ in (API_DIR / module).rglob("*.html"))
+        if pages < min_pages:
+            failures.append(
+                f"API reference for {module} has {pages} HTML pages "
+                f"(expected at least {min_pages})"
+            )
+
+
 def main() -> int:
     failures: list[str] = []
     check_nav_coverage(failures)
     check_recipes_have_fenced_block(failures)
     check_platforms_have_tabs(failures)
+    check_api_reference_populated(failures)
 
     if failures:
         print("docs/check.py: FAILED", file=sys.stderr)
