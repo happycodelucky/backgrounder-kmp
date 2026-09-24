@@ -2,8 +2,8 @@
 import PackageDescription
 
 // BEGIN KMMBRIDGE VARIABLES BLOCK (do not edit)
-let remoteKotlinUrl = "https://github.com/happycodelucky/backgrounder-kmp/releases/download/v0.12.1/Backgrounder.xcframework.zip"
-let remoteKotlinChecksum = "ed1ee02fcfcffd43ff5a8b717c7e9744705cee9c2bdf3b0c625cd5e451232241"
+let remoteKotlinUrl = "https://github.com/happycodelucky/backgrounder-kmp/releases/download/v0.13.0/Backgrounder.xcframework.zip"
+let remoteKotlinChecksum = "b694738d4bff49f8f44dbbba9446bd36ea02efe3ec454f1993abb46cd6317585"
 let packageName = "Backgrounder"
 // END KMMBRIDGE BLOCK
 
