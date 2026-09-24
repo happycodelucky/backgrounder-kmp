@@ -25,7 +25,6 @@ import com.happycodelucky.backgrounder.WorkRequest
 import com.happycodelucky.backgrounder.WorkResult
 import com.happycodelucky.backgrounder.WorkerContext
 import com.happycodelucky.backgrounder.WorkerRegistry
-import com.happycodelucky.backgrounder.gateBudgetFor
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -252,19 +251,23 @@ internal class NSBackgroundActivityBackedScheduler(
                 // ── Reachability gate (review-loop round 2). macOS's
                 // NSBackgroundActivityScheduler has no constraint concept of
                 // its own, so without this gate `WorkConstraints.networkRequired`
-                // would be silently ignored. Wait up to `min(5s, budget/4)`
-                // (≈75 seconds with our 5-minute budget, then clamped to 5s by
-                // ReachabilityGate.MAX_WAIT). On timeout, treat as `Retry` so
-                // the rest of the macOS retry machinery (`handleOneShotRetry`
-                // for one-shots, periodic Deferred-result for periodics) handles
-                // rescheduling.
-                val gateBudget = gateBudgetFor(ctx.capabilities)
-                val gateResult = gate.awaitReachable(request.constraints.networkRequired, gateBudget)
+                // would be silently ignored. Pass the RAW per-invocation budget;
+                // the gate owns the single `min(5s, budget/4)` quartering and
+                // reports the effective wait it used (see B-032). With our
+                // 5-minute macOS budget that resolves to MAX_WAIT (5s). On
+                // timeout, treat as `Retry` so the rest of the macOS retry
+                // machinery (`handleOneShotRetry` for one-shots, periodic
+                // Deferred-result for periodics) handles rescheduling.
+                val gateResult =
+                    gate.awaitReachable(
+                        request.constraints.networkRequired,
+                        ctx.capabilities.maxExecutionTime,
+                    )
                 val result =
                     if (gateResult is ReachabilityGate.GateResult.TimedOut) {
                         log.i {
                             "[${request.taskId}] reachability gate timed out " +
-                                "(requirement=${request.constraints.networkRequired}, budget=$gateBudget); " +
+                                "(requirement=${request.constraints.networkRequired}, waited=${gateResult.waited}); " +
                                 "skipping worker, deferring as Retry"
                         }
                         emitter.emit(
@@ -275,7 +278,7 @@ internal class NSBackgroundActivityBackedScheduler(
                                 reason =
                                     DeferralReason.ReachabilityTimeout(
                                         requirement = request.constraints.networkRequired,
-                                        budget = gateBudget,
+                                        waited = gateResult.waited,
                                     ),
                             ),
                         )

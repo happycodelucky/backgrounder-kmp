@@ -24,11 +24,15 @@ import kotlin.time.Duration.Companion.seconds
  * the worker for us. Carrying the gate on Android would be both wasted work
  * and a behaviour drift versus the WorkManager contract.
  *
- * The wait window is bounded by the per-invocation platform budget. The
- * formula `min(5.seconds, budget / 4)` keeps the gate from burning more than
- * a quarter of an `BGAppRefreshTask`'s ~30-second runway and never waits more
- * than 5 seconds even on long-budget `BGProcessingTask` (several minutes) or
- * the in-process foreground feed (`Duration.INFINITE`).
+ * **Wait window.** Call sites pass the **raw** per-invocation budget
+ * (`PlatformCapabilities.maxExecutionTime`); [awaitReachable] owns the single
+ * `min(5.seconds, budget / 4)` derivation. Quartering keeps the gate from
+ * burning more than a quarter of a `BGAppRefreshTask`'s ~30-second runway, and
+ * the 5-second cap ([MAX_WAIT]) bounds the long-budget cases — `BGProcessingTask`
+ * (several minutes), the in-process foreground feed and the JVM scheduler (both
+ * `Duration.INFINITE`). Callers must **not** pre-quarter the budget before
+ * passing it: doing so quarters twice and collapses the real wait to a fraction
+ * of what's documented (see LESSONS.md B-032).
  *
  * Concurrency: [awaitReachable] is `suspend`-safe and respects upstream
  * coroutine cancellation. `withTimeoutOrNull` propagates the test scheduler's
@@ -49,13 +53,25 @@ internal class ReachabilityGate(
         /** Network is reachable (and matches the metering requirement, where applicable). */
         public data object Met : GateResult
 
-        /** Budget exhausted without the requirement being met. Caller should map to [WorkResult.Retry]. */
-        public data object TimedOut : GateResult
+        /**
+         * Budget exhausted without the requirement being met. Caller should map to [WorkResult.Retry].
+         *
+         * [waited] is the effective wait window the gate held the dispatch for
+         * before giving up — `min(MAX_WAIT, budget / 4)`. Callers surface it in
+         * `DeferralReason.ReachabilityTimeout.waited` so observers see the real
+         * hold time, not the raw execution budget.
+         */
+        public data class TimedOut(public val waited: Duration) : GateResult
     }
 
     /**
      * Suspend until [requirement] is satisfied, or until the wait window
      * derived from [budget] elapses.
+     *
+     * [budget] is the **raw** per-invocation execution budget
+     * (`PlatformCapabilities.maxExecutionTime`); the gate derives its own wait
+     * window as `min(MAX_WAIT, budget / 4)`. Do not pre-quarter — see the class
+     * KDoc and LESSONS.md B-032.
      *
      * `NetworkRequirement.None` returns [GateResult.NotRequired] without
      * touching the reachability flow — zero allocation on the hot path for
@@ -79,7 +95,7 @@ internal class ReachabilityGate(
             withTimeoutOrNull(wait) {
                 reachability.status.first { matches(requirement, it) }
             }
-        return if (result != null) GateResult.Met else GateResult.TimedOut
+        return if (result != null) GateResult.Met else GateResult.TimedOut(wait)
     }
 
     private fun matches(
@@ -99,15 +115,3 @@ internal class ReachabilityGate(
         internal val MAX_WAIT: Duration = 5.seconds
     }
 }
-
-/**
- * Computes the [ReachabilityGate] wait window for the given platform [PlatformCapabilities].
- *
- * `min(MAX_WAIT, maxExecutionTime / 4)` — quarters the budget so the gate
- * doesn't burn most of an App Refresh runway, then clamps at 5s for the
- * common case where `maxExecutionTime` is `Duration.INFINITE` (foreground
- * feed) or several minutes (BGProcessingTask). Foreground feed inherits the
- * 5-second cap implicitly via this formula.
- */
-internal fun gateBudgetFor(capabilities: PlatformCapabilities): Duration =
-    minOf(ReachabilityGate.MAX_WAIT, capabilities.maxExecutionTime / 4)
